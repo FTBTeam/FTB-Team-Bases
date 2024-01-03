@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "ftbteambases",
+  "version": "${version}",
+  "name": "FTB Team Bases",
+  "description": "This is an example description! Tell everyone what your mod is about!",
+  "authors": [
+    "Me!"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.ftb.mods.ftbteambases.fabric.FTBTeamBasesFabric"
+    ]
+  },
+  "mixins": [
+    "ftbteambases.mixins.json",
+    "ftbteambases-common.mixins.json"
+  ],
+  "depends": {
+    "fabric": "*",
+    "minecraft": ">=1.20.1",
+    "architectury": ">=9.1.12"
+  }
+}
