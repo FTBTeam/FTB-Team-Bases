@@ -1,0 +1,9 @@
+{
+  "type": "ftbteambases:start",
+  "biomes": "#ftbteambases:has_structure/start",
+  "spawn_overrides": {},
+  "step": "top_layer_modification",
+  "start_height": {
+    "absolute": 64
+  }
+}

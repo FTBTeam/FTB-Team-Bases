@@ -1,2 +1,22 @@
 {
+  "ftbteambases.message.could_not_teleport": "Could not teleport to team base: %s",
+  "ftbteambases.message.missing_definition": "Unknown base definition: %s",
+  "ftbteambases.message.no_archived_bases": "No archived bases exist currently",
+  "ftbteambases.message.archived_bases": "%s Archived Base(s):",
+  "ftbteambases.message.no_bases": "No team bases exist currently",
+  "ftbteambases.message.bases": "%s Team Base(s):",
+  "ftbteambases.message.base_not_found": "No base found for team %s!",
+  "ftbteambases.message.show_base_header": "Team Base Details for %s",
+  "ftbteambases.message.base_dimension": "Dimension: %s",
+  "ftbteambases.message.base_extents": "Region Extents: %s",
+  "ftbteambases.message.base_extents_block": "Block Extents: %s",
+  "ftbteambases.message.base_spawn_pos": "Player Spawn Pos: %s",
+  "ftbteambases.message.construction_in_progress": "Base construction is in already in progress for %s!",
+  "ftbteambases.message.creation_started": "Constructing your base, stand by for teleport!",
+  "ftbteambases.gui.show": "Show",
+  "ftbteambases.gui.visit": "Visit",
+  "ftbteambases.gui.create": "Create",
+  "ftbteambases.gui.select": "Select",
+  "ftbteambases.gui.select_start": "Select a Base",
+  "ftbteambases.gui.by": "By: %s"
 }

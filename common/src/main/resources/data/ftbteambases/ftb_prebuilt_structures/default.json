@@ -1,0 +1,9 @@
+{
+  "id": "ftbteambases:default",
+  "structure": "ftbteambases:spawn/island1",
+  "name": "Simple Island",
+  "structure_set": "ftbteambases:default",
+  "height": 64,
+  "dimension_type": "ftbteambases:default",
+  "preview_image": "ftbteambases:textures/spawn/default.png"
+}

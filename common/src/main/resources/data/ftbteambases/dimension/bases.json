@@ -1,0 +1,11 @@
+{
+  "generator": {
+    "type": "ftbteambases:void",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "minecraft:the_void"
+    },
+    "settings": "minecraft:overworld"
+  },
+  "type": "ftbteambases:default"
+}

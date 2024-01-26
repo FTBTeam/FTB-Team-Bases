@@ -1,0 +1,13 @@
+{
+  "placement": {
+    "type": "ftbteambases:one_chunk_only",
+    "cx": 0,
+    "cz": 0
+  },
+  "structures": [
+    {
+      "structure": "ftbteambases:start",
+      "weight": 1
+    }
+  ]
+}

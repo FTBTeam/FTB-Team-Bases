@@ -1,110 +1,182 @@
 package dev.ftb.mods.ftbteambases.util;
 
+import dev.ftb.mods.ftblibrary.math.XZ;
+import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
-import joptsimple.internal.Strings;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
-import net.minecraft.world.level.storage.LevelResource;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.mutable.MutableInt;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 public class RegionFileRelocator {
+    private static final int MAX_THREADS = 9;
     public static final Path PREGEN_PATH = Path.of(FTBTeamBases.MOD_ID, "pregen");
 
-    private static final Pattern MCA_FILE = Pattern.compile("^r\\.(\\d+)\\.(\\d+)\\.mca$", Pattern.CASE_INSENSITIVE);
+    private final Map<Path, RelocationData> relocationData = new HashMap<>();
+    private final CommandSourceStack source;
+    private final boolean force;
+    private final Path destDir;
+    private final int totalChunks;
+    private final AtomicInteger chunkProgress;
+    private final UUID relocatorId;
+    @Nullable
+    private final UUID playerId;
+    private boolean started = false;
 
-    public static boolean relocateRegionTemplate(MinecraftServer server, ResourceLocation templateId, ResourceKey<Level> dimensionKey, int xOff, int zOff, boolean force) throws IOException {
-        Path rootDir = server.getServerDirectory().toPath();
-        Path resDir = Path.of(templateId.getNamespace(), templateId.getPath().split("/"));
-        Path pregenDir = rootDir.resolve(PREGEN_PATH).resolve(resDir);
-
-        Path destDir = levelKeyToPath(server.getWorldPath(LevelResource.ROOT), dimensionKey, "region");
-        Path workDir = destDir.resolve("worktmp");
-
-        // Copy MCA files from the template dir to the temp workdir, with updated filenames
-        //   and rewrite chunk pos data within the region file to match the new region
-        Files.createDirectories(workDir);
-        FTBTeamBases.LOGGER.debug("created work dir {}", workDir);
-
-        MutableInt good = new MutableInt(0);
-        MutableInt bad = new MutableInt(0);
-
-        try (RegionFileStorage storage = new RegionFileStorage(workDir, true)) {
-            try (Stream<Path> s = Files.walk(pregenDir).filter(f -> f.getFileName().toString().endsWith(".mca"))) {
-                s.forEach(file -> getRegionCoords(file).ifPresent(oldRegionPos -> {
-                    if (copyAndRename(file, oldRegionPos, workDir, xOff, zOff)
-                            && performRelocation(oldRegionPos.offsetBy(xOff, zOff), storage, xOff, zOff)) {
-                        good.increment();
-                    } else {
-                        bad.increment();
-                    }
-                }));
-            }
-        }
-
-        if (bad.toInteger() > 0) return false;
-
-        Map<Path,Path> toMove = new HashMap<>();
-        Set<Path> exists = new HashSet<>();
-        try (Stream<Path> s = Files.walk(workDir).filter(f -> f.getFileName().toString().endsWith(".mca"))) {
-            s.forEach(file -> {
-                Path destFile = destDir.resolve(file.getFileName());
-                if (!force && Files.exists(destFile)) {
-                    exists.add(destFile);
-                }
-                toMove.put(file, destFile);
-            });
-        }
-
-        if (!force && !exists.isEmpty()) {
-            FTBTeamBases.LOGGER.error("Not overwriting {} region file(s): {}",
-                    exists.size(), Strings.join(exists.stream().map(Path::toString).toList(), ","));
-            bad.increment();
-        } else {
-            toMove.forEach((from, to) -> {
-                try {
-                    Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
-                    FTBTeamBases.LOGGER.debug("moved {} to {}", from, to);
-                } catch (IOException e) {
-                    logError(e, "can't move {} to {}: {}", from, to, e);
-                    bad.increment();
-                }
-            });
-        }
-
-        FileUtils.deleteDirectory(workDir.toFile());
-        FTBTeamBases.LOGGER.debug("deleted work dir {}", workDir);
-
-        return good.toInteger() > 0 && bad.toInteger() == 0;
+    public static RegionFileRelocator create(CommandSourceStack source, String templateId, ResourceKey<Level> dimensionKey, RelocatorTracker.Ticker ticker, XZ regionOffset, boolean force) throws IOException {
+        return RelocatorTracker.INSTANCE.add(new RegionFileRelocator(source, templateId, dimensionKey, regionOffset, force), ticker);
     }
 
-    private static boolean copyAndRename(Path file, RegionCoords r, Path workDir, int xOff, int zOff) {
+    public RegionFileRelocator(CommandSourceStack source, String templateId, ResourceKey<Level> dimensionKey, XZ regionOffset, boolean force) throws IOException {
+        this.source = source;
+        this.force = force;
+
+        Path pregenPath = RegionFileUtil.getPregenPath(templateId, source.getServer());
+
+        destDir = RegionFileUtil.getPathForDimension(source.getServer(), dimensionKey, "region");
+
+        try (Stream<Path> s = Files.walk(pregenPath).filter(f -> f.getFileName().toString().endsWith(".mca"))) {
+            s.forEach(file -> RegionFileUtil.getRegionCoords(file).ifPresent(oldRegionPos ->
+                    relocationData.put(file, new RelocationData(oldRegionPos, regionOffset))));
+        }
+
+        // a region is 32*32 chunks = 1024 chunks per region to be relocated
+        totalChunks = relocationData.size() * 1024;
+        chunkProgress = new AtomicInteger(0);
+        relocatorId = UUID.randomUUID();
+        playerId = source.getPlayer() == null ? null : source.getPlayer().getUUID();
+    }
+
+    public CommandSourceStack getSource() {
+        return source;
+    }
+
+    public UUID getRelocatorId() {
+        return relocatorId;
+    }
+
+    public @Nullable UUID getPlayerId() {
+        return playerId;
+    }
+
+    public float getProgress() {
+        return totalChunks > 0 ? chunkProgress.floatValue() / totalChunks : 0f;
+    }
+
+    public boolean isStarted() {
+        return started;
+    }
+
+    public void start(BooleanConsumer onCompleted) {
+        if (started) {
+            throw new IllegalStateException("relocator already started!");
+        }
+
+        // called from main thread
+        Path workDir = destDir.resolve("worktmp-" + Thread.currentThread().getId());
         try {
-            Path dest = workDir.resolve(String.format("r.%d.%d.mca", r.x() + xOff, r.z() + zOff));
-            Files.copy(file, dest);
-            FTBTeamBases.LOGGER.debug("copied {} to {}", file, dest);
-            return true;
+            if (!force) {
+                // ensure none of the dest region MCA files exist yet
+                relocationData.values().forEach(data -> {
+                    Path destFile = destDir.resolve(data.orig.offsetBy(data.regionOffset).filename());
+                    if (Files.exists(destFile)) {
+                        throw new IllegalStateException("won't overwrite dest MCA file " + destFile);
+                    }
+                });
+            }
+            started = true;
+            Files.createDirectories(workDir);
+            FTBTeamBases.LOGGER.debug("created work dir {}", workDir);
+            CompletableFuture.supplyAsync(() -> runRelocation(workDir)).thenAccept(result -> {
+                        FTBTeamBases.LOGGER.debug("finished relocation!");
+                        try {
+                            FileUtils.deleteDirectory(workDir.toFile());
+                        } catch (IOException e) {
+                            logError(e, "Can't delete work dir: {}", e.getMessage());
+                        }
+                        RelocatorTracker.INSTANCE.remove(this);
+                        // callback gets run in the main thread via server.tell()
+                        source.getServer().tell(
+                                new TickTask(source.getServer().getTickCount() + 1, () -> onCompleted.accept(result))
+                        );
+                    }
+            );
         } catch (IOException e) {
-            logError(e,"Can't copy {} to {}: {}", file, workDir, e.getMessage());
+            logError(e, "can't create work dir: {}", e.getMessage());
+        }
+    }
+
+    private boolean runRelocation(Path workDir) {
+        // runs in new thread
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+
+        Executor executor = Executors.newFixedThreadPool(MAX_THREADS);
+
+        // each individual region relocation happens in its own thread (subject to MAX_THREADS limit)
+        relocationData.forEach((srcFile, data) ->
+                futures.add(CompletableFuture.supplyAsync(() -> relocateOneRegion(srcFile, workDir, data), executor))
+        );
+
+        // wait till all region relocations are done, then collect success/failure data
+        CompletableFuture<List<Boolean>> allRegionsFuture = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> futures.stream().map(CompletableFuture::join).toList());
+
+        try {
+            return allRegionsFuture.get().stream().allMatch(x -> x);
+        } catch (InterruptedException | ExecutionException e) {
+            logError(e, "unexpected concurrency problem: {}", e.getMessage());
             return false;
         }
     }
 
-    private static boolean performRelocation(RegionCoords r, RegionFileStorage storage, int xOff, int zOff) {
+    private boolean relocateOneRegion(Path fromFile, Path workDir, RelocationData data) {
+        RegionCoords newCoords = data.orig.offsetBy(data.regionOffset);
+        Path workFile = workDir.resolve(newCoords.filename());
+        Path destFile = destDir.resolve(newCoords.filename());
+
+        FTBTeamBases.LOGGER.debug("starting relocation for {} -> {}", fromFile, workFile);
+
+        if (!force && Files.exists(destFile)) {
+            FTBTeamBases.LOGGER.error("Not overwriting region file: {}", destFile);
+            return false;
+        }
+
+        try (RegionFileStorage storage = new RegionFileStorage(workDir, true)) {
+            Files.copy(fromFile, workFile);
+            FTBTeamBases.LOGGER.debug("copied {} to {}", fromFile, workFile);
+            if (updateRegionChunkData(storage, newCoords, data.regionOffset.x(), data.regionOffset.z())) {
+                Files.move(workFile, destFile, StandardCopyOption.REPLACE_EXISTING);
+                FTBTeamBases.LOGGER.debug("moved {} to {}", workFile, destFile);
+                return true;
+            }
+        } catch (IOException e) {
+            logError(e, "IO exception caught: {}", e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean updateRegionChunkData(RegionFileStorage storage, RegionCoords r, int xOff, int zOff) {
+        if (xOff == 0 && zOff == 0) {
+            return true; // trivial case
+        }
+
         for (int cx = 0; cx < 32; cx++) {
             for (int cz = 0; cz < 32; cz++) {
                 ChunkPos newChunkPos = new ChunkPos(r.x() * 32 + cx, r.z() * 32 + cz);
@@ -158,6 +230,7 @@ public class RegionFileRelocator {
 
                         storage.write(newChunkPos, chunkData);
                     }
+                    chunkProgress.getAndIncrement();
                 } catch (IOException e) {
                     logError(e,"Can't update chunk pos data for region {}: {}", r, e.getMessage());
                     return false;
@@ -173,38 +246,10 @@ public class RegionFileRelocator {
         if (tag.contains(key, Tag.TAG_INT)) tag.putInt(key, tag.getInt(key) + offset * 512);
     }
 
-    private static Optional<RegionCoords> getRegionCoords(Path file) {
-        Matcher m = MCA_FILE.matcher(file.getFileName().toString());
-        if (m.matches()) {
-            try {
-                int rx0 = Integer.parseInt(m.group(1));
-                int rz0 = Integer.parseInt(m.group(2));
-                return Optional.of(new RegionCoords(rx0, rz0));
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return Optional.empty();
-    }
-
-    private static Path levelKeyToPath(Path levelDataDir, ResourceKey<Level> levelKey, String subDirectory) {
-        if (Level.OVERWORLD.equals(levelKey)) {
-            return levelDataDir.resolve(subDirectory);
-        } else if (Level.NETHER.equals(levelKey)) {
-            return levelDataDir.resolve("DIM-1").resolve(subDirectory);
-        } else if (Level.END.equals(levelKey)) {
-            return levelDataDir.resolve("DIM1").resolve(subDirectory);
-        } else {
-            return levelDataDir.resolve("dimensions").resolve(levelKey.location().getNamespace()).resolve(levelKey.location().getPath()).resolve(subDirectory);
-        }
-    }
-
-    private record RegionCoords(int x, int z) {
-        public RegionCoords offsetBy(int xOff, int zOff) {
-            return new RegionCoords(x + xOff, z + zOff);
-        }
-    }
-
     private static void logError(Exception e, String msg, Object... args) {
         FTBTeamBases.LOGGER.error("{}: " + msg, e.getClass().getSimpleName(), args);
+    }
+
+    private record RelocationData(RegionCoords orig, XZ regionOffset) {
     }
 }

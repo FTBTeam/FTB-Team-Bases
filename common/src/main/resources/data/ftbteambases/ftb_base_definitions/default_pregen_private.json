@@ -1,0 +1,13 @@
+{
+  "id": "ftbteambases:default_pregen_private",
+  "description": "Test Base (Pregen/Private)",
+  "preview_image": "ftbteambases:textures/spawn/default.png",
+  "dev_mode": true,
+  "construction": {
+    "pregen_template": "test_2x2"
+  },
+  "dimension": {
+    "private": true,
+    "dimension_type": "ftbteambases:default"
+  }
+}
