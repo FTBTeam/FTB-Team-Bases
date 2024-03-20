@@ -1,8 +1,9 @@
 package dev.ftb.mods.ftbteambases.block;
 
-import dev.ftb.mods.ftbteambases.data.BaseConstructionManager;
+import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.net.ShowSelectionGuiMessage;
+import dev.ftb.mods.ftbteambases.registry.ModBlocks;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -10,11 +11,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 public class BasesPortalBlock extends NetherPortalBlock {
     public BasesPortalBlock() {
@@ -39,7 +44,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
         } else {
             FTBTeamsAPI.api().getManager().getTeamForPlayer(player).ifPresent(team -> {
                 if (team.isPartyTeam()) {
-                    BaseInstanceManager.get().teleportToSpawn(player, team.getId());
+                    BaseInstanceManager.get(player.getServer()).teleportToBaseSpawn(player, team.getId());
                 } else if (!BaseConstructionManager.INSTANCE.isConstructing(player)) {
                     // player not in a party: bring up the base selection GUI
                     player.setPortalCooldown();
@@ -47,6 +52,20 @@ public class BasesPortalBlock extends NetherPortalBlock {
                 }
             });
         }
+    }
+
+    @Nullable
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        Direction.Axis facing = ctx.getHorizontalDirection().getAxis();
+        facing = facing == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X;
+
+        return defaultBlockState().setValue(NetherPortalBlock.AXIS, facing);
+    }
+
+    @Override
+    public ItemStack getCloneItemStack(BlockGetter blockGetter, BlockPos blockPos, BlockState blockState) {
+        return new ItemStack(ModBlocks.PORTAL_ITEM.get());
     }
 
     @Override

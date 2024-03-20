@@ -23,7 +23,7 @@ public class HomeCommand {
         Team team = FTBTeamsAPI.api().getManager().getTeamForPlayer(player)
                 .orElseThrow(() -> TeamArgument.TEAM_NOT_FOUND.create(player.getUUID()));
         if (team.isPartyTeam()) {
-            if (!BaseInstanceManager.get().teleportToSpawn(player, team.getId())) {
+            if (!BaseInstanceManager.get(source.getServer()).teleportToBaseSpawn(player, team.getId())) {
                 throw CommandUtils.CANT_TELEPORT.create(team.getShortName());
             }
         } else {

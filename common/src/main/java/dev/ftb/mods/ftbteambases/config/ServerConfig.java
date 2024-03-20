@@ -15,8 +15,12 @@ public interface ServerConfig {
     SNBTConfig GENERAL = CONFIG.addGroup("general");
     BooleanValue CLEAR_PLAYER_INV_ON_JOIN = GENERAL.addBoolean("clear_player_inv_on_join", false)
             .comment("When set to true, the player's inventory will be cleared when joining a team");
+    BooleanValue HEAL_PLAYER_ON_JOIN = GENERAL.addBoolean("heal_player_on_join", true)
+            .comment("When set to true, the player will be healed (and fully fed) when joining a team");
     BooleanValue CLEAR_PLAYER_INV_ON_LEAVE = GENERAL.addBoolean("clear_player_inv_on_leave", true)
             .comment("When set to true, the player's inventory will be cleared when leaving a team");
+    BooleanValue TEAM_NETHER_ENTRY_POINT = GENERAL.addBoolean("team_nether_entry_point", true)
+            .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())

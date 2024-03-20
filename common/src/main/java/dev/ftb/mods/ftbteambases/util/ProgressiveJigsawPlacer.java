@@ -30,18 +30,16 @@ import java.util.Optional;
 public class ProgressiveJigsawPlacer {
     private final CommandSourceStack source;
     private final JigsawParams jigsawParams;
-    private final ServerLevel level;
     private final BlockPos startPos;
     private WorkData workData;
 
-    public ProgressiveJigsawPlacer(CommandSourceStack source, JigsawParams jigsawParams, ServerLevel level, BlockPos startPos) {
+    public ProgressiveJigsawPlacer(CommandSourceStack source, JigsawParams jigsawParams, BlockPos startPos) {
         this.source = source;
         this.jigsawParams = jigsawParams;
-        this.level = level;
         this.startPos = startPos;
     }
 
-    public void start() {
+    public void start(ServerLevel level) {
         level.setBlock(startPos, Blocks.JIGSAW.defaultBlockState().setValue(JigsawBlock.ORIENTATION, jigsawParams.jigsawOrientation()), 0);
 
         if (level.getBlockEntity(startPos) instanceof JigsawBlockEntity jbe) {

@@ -5,7 +5,7 @@ import dev.architectury.networking.NetworkManager;
 import dev.architectury.networking.simple.BaseC2SMessage;
 import dev.architectury.networking.simple.MessageType;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
-import dev.ftb.mods.ftbteambases.data.BaseConstructionManager;
+import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;

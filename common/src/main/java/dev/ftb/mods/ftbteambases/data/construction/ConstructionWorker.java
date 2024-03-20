@@ -1,4 +1,4 @@
-package dev.ftb.mods.ftbteambases.data.workers;
+package dev.ftb.mods.ftbteambases.data.construction;
 
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftblibrary.util.BooleanConsumer;

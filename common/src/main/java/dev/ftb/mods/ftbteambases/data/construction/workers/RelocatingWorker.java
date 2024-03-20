@@ -1,10 +1,11 @@
-package dev.ftb.mods.ftbteambases.data.workers;
+package dev.ftb.mods.ftbteambases.data.construction.workers;
 
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
+import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.Pregen;
 import dev.ftb.mods.ftbteambases.util.RegionCoords;
@@ -36,7 +37,7 @@ public class RelocatingWorker implements ConstructionWorker {
         CommandSourceStack source = player.createCommandSourceStack();
         MinecraftServer server = source.getServer();
 
-        Path pregenDir = RegionFileUtil.getPregenPath(pregen.templateId(), server);
+        Path pregenDir = RegionFileUtil.getPregenPath(pregen.templateId(), server, "region");
 
         extents = RegionFileUtil.getRegionExtents(pregenDir)
                 .orElseThrow(() -> new FTBTeamBasesException("no region files in " + pregenDir));

@@ -22,7 +22,7 @@ public class ListCommand {
     }
 
     private static int doList(CommandSourceStack source) {
-        Map<UUID,LiveBaseDetails> bases = BaseInstanceManager.get().allLiveBases();
+        Map<UUID,LiveBaseDetails> bases = BaseInstanceManager.get(source.getServer()).allLiveBases();
 
         if (bases.isEmpty()) {
             source.sendSuccess(() -> Component.translatable("ftbteambases.message.no_bases")
@@ -30,6 +30,7 @@ public class ListCommand {
         } else {
             source.sendSuccess(() -> Component.translatable("ftbteambases.message.bases", bases.size())
                     .withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE), false);
+            source.sendSuccess(Component::empty, false);
             var mgr = FTBTeamsAPI.api().getManager();
             bases.forEach((id, base) -> mgr.getTeamByID(id).ifPresent(team -> {
                 var msg = Component.literal("• ")

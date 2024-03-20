@@ -1,13 +1,14 @@
 package dev.ftb.mods.ftbteambases.util;
 
-import com.mojang.datafixers.util.Pair;
+import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,9 +55,9 @@ public class RegionFileUtil {
     }
 
     @NotNull
-    public static Path getPregenPath(String templateId, MinecraftServer server) {
-        return server.getServerDirectory().toPath()
-                .resolve(PREGEN_PATH).resolve(templateId);
+    public static Path getPregenPath(String templateId, MinecraftServer server, @Nullable String subDir) {
+        Path base = server.getServerDirectory().toPath().resolve(PREGEN_PATH).resolve(templateId);
+        return subDir == null ? base : base.resolve(subDir);
     }
 
     @NotNull
@@ -70,6 +71,25 @@ public class RegionFileUtil {
             return levelDataDir.resolve("DIM1").resolve(subDirectory);
         } else {
             return levelDataDir.resolve("dimensions").resolve(levelKey.location().getNamespace()).resolve(levelKey.location().getPath()).resolve(subDirectory);
+        }
+    }
+
+    public static void copyIfExists(MinecraftServer server, Path pregenDir, ResourceKey<Level> dimensionKey) {
+        if (!pregenDir.toFile().isDirectory()) {
+            return;
+        }
+
+        Path destDir = server.getWorldPath(LevelResource.ROOT)
+                .resolve("dimensions")
+                .resolve(dimensionKey.location().getNamespace())
+                .resolve(dimensionKey.location().getPath());
+
+        try {
+            FileUtils.copyDirectory(pregenDir.toFile(), destDir.toFile());
+            FTBTeamBases.LOGGER.info("Copied pregen MCA files from {} to {}", pregenDir, destDir);
+        } catch (IOException e) {
+            FTBTeamBases.LOGGER.error("Failed to copy pregen MCA files from {} to {}: {}", pregenDir, destDir, e.getMessage());
+            e.printStackTrace();
         }
     }
 }

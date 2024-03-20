@@ -1,11 +1,10 @@
-package dev.ftb.mods.ftbteambases.data;
+package dev.ftb.mods.ftbteambases.data.construction;
 
 import dev.architectury.utils.GameInstance;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
-import dev.ftb.mods.ftbteambases.data.workers.ConstructionWorker;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.PlayerTeam;
@@ -57,17 +56,18 @@ public class BaseConstructionAgent {
                 if (team instanceof PlayerTeam playerTeam) {
                     try {
                         Team party = playerTeam.createParty("", null);
-                        BaseInstanceManager.get(server).add(party.getId(), constructionWorker.makeLiveBaseDetails(destLevel, baseDefinition));
+                        BaseInstanceManager.get(server).addNewBase(party.getId(), constructionWorker.makeLiveBaseDetails(destLevel, baseDefinition));
                         if (player != null) {
                             // teleport player to newly-created base
-                            BaseInstanceManager.get(server).teleportToSpawn(player, party.getId());
+                            BaseInstanceManager.get(server).teleportToBaseSpawn(player, party.getId());
                         }
-                        FTBTeamBases.LOGGER.info("team base created for player id {}: team id = {}", playerId, party.getId());
+                        FTBTeamBases.LOGGER.info("team base created for player id {}, party id = {}, dim id = {}",
+                                playerId, party.getId(), destLevel.dimension().location());
                     } catch (IllegalStateException e) {
                         if (player != null) {
                             player.displayClientMessage(Component.literal("can't create party team for you! " + e.getMessage()), false);
                         }
-                        FTBTeamBases.LOGGER.error("can't create party team for player {}: {}", player.getUUID(), e.getMessage());
+                        FTBTeamBases.LOGGER.error("can't create party team for player {}: {}", playerId, e.getMessage());
                     }
                 }
             });

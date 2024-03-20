@@ -1,16 +1,14 @@
 package dev.ftb.mods.ftbteambases;
 
-import com.mojang.brigadier.CommandDispatcher;
-import dev.architectury.event.events.common.CommandRegistrationEvent;
-import dev.architectury.event.events.common.LifecycleEvent;
-import dev.architectury.event.events.common.PlayerEvent;
-import dev.architectury.event.events.common.TickEvent;
+import dev.architectury.event.EventResult;
+import dev.architectury.event.events.common.*;
 import dev.architectury.registry.ReloadListenerRegistry;
 import dev.ftb.mods.ftblibrary.snbt.config.ConfigUtil;
 import dev.ftb.mods.ftbteambases.command.*;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
-import dev.ftb.mods.ftbteambases.data.BaseConstructionManager;
+import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
+import dev.ftb.mods.ftbteambases.data.construction.RelocatorTracker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import dev.ftb.mods.ftbteambases.net.FTBTeamBasesNet;
 import dev.ftb.mods.ftbteambases.net.SyncBaseTemplatesMessage;
@@ -21,9 +19,6 @@ import dev.ftb.mods.ftbteambases.util.*;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.event.TeamEvent;
 import net.minecraft.ResourceLocationException;
-import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -31,6 +26,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -70,28 +66,17 @@ public class FTBTeamBases {
 
         TickEvent.SERVER_POST.register(FTBTeamBases::onServerTick);
 
-        CommandRegistrationEvent.EVENT.register(FTBTeamBases::registerCommands);
+        CommandRegistrationEvent.EVENT.register(CommandUtils::registerCommands);
 
         TeamEvent.PLAYER_JOINED_PARTY.register(TeamEventListener::teamPlayerJoin);
         TeamEvent.PLAYER_LEFT_PARTY.register(TeamEventListener::teamPlayerLeftParty);
 
-        PlayerEvent.PLAYER_JOIN.register(FTBTeamBases::playerJoined);
+        EntityEvent.ADD.register(FTBTeamBases::playerJoinLevel);
+
+        PlayerEvent.PLAYER_JOIN.register(FTBTeamBases::playerEnterServer);
         PlayerEvent.CHANGE_DIMENSION.register(FTBTeamBases::playerChangedDimension);
 
         ReloadListenerRegistry.register(PackType.SERVER_DATA, new BaseDefinitionManager.ReloadListener());
-    }
-
-    private static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context, Commands.CommandSelection selection) {
-        dispatcher.register(Commands.literal(FTBTeamBases.MOD_ID)
-                .then(RelocateCommand.register())
-                .then(CreateBaseCommand.register())
-                .then(HomeCommand.register())
-                .then(LobbyCommand.register())
-                .then(ListCommand.register())
-                .then(ShowCommand.register())
-                .then(VisitCommand.register())
-                .then(ArchiveCommand.register())
-        );
     }
 
     private static void onServerTick(MinecraftServer server) {
@@ -131,10 +116,12 @@ public class FTBTeamBases {
         }
     }
 
-    private static void playerJoined(ServerPlayer player) {
-        if (player.level() instanceof ServerLevel serverLevel) {
-            SyncBaseTemplatesMessage.syncTo(player);
+    private static void playerEnterServer(ServerPlayer player) {
+        SyncBaseTemplatesMessage.syncTo(player);
+    }
 
+    private static EventResult playerJoinLevel(Entity entity, Level level) {
+        if (entity instanceof ServerPlayer player && level instanceof ServerLevel serverLevel) {
             if (serverLevel.dimension().equals(OVERWORLD) && player.getRespawnDimension().equals(OVERWORLD)) {
                 // Assume this is their first time joining the world; otherwise their respawn dimension would be their own dimension
                 // Send them to the lobby, and set their respawn position there
@@ -151,6 +138,7 @@ public class FTBTeamBases {
 
             switchGameMode(player, player.level().dimension());
         }
+        return EventResult.pass();
     }
 
     private static void playerChangedDimension(ServerPlayer player, ResourceKey<Level> oldLevel, ResourceKey<Level> newLevel) {
@@ -174,8 +162,10 @@ public class FTBTeamBases {
             var mgr = BaseInstanceManager.get(player.server);
 
             if (newLevel.equals(NETHER)) {
-                // travelling to the Nether: if from our team dimension, store the player's location to later return there
-                BlockPos portalPos = oldLevel.location().getNamespace().equals(FTBTeamBases.MOD_ID) ? player.blockPosition() : null;
+                // travelling to the Nether: if from our team dimension, store the player's location (in the from-dimension!) to later return there
+                BlockPos portalPos = oldLevel.location().getNamespace().equals(FTBTeamBases.MOD_ID) ?
+                        BlockPos.containing(player.xOld, player.yOld, player.zOld) :
+                        null;
                 mgr.setPlayerNetherPortalLoc(player, portalPos);
             } else if (oldLevel.equals(NETHER) && newLevel.equals(OVERWORLD)) {
                 // returning from the Nether: intercept this and send the player to their base portal instead
@@ -190,7 +180,8 @@ public class FTBTeamBases {
     }
 
     private static void handleLobbySetup(ServerLevel serverLevel) {
-        if (!BaseInstanceManager.get().isLobbyCreated()) {
+        BaseInstanceManager mgr = BaseInstanceManager.get(serverLevel.getServer());
+        if (!mgr.isLobbyCreated()) {
             try {
                 ResourceLocation lobbyLocation = ServerConfig.lobbyLocation();
 
@@ -203,8 +194,8 @@ public class FTBTeamBases {
 
                 lobby.placeInWorld(serverLevel, lobbyLoc, lobbyLoc, placeSettings, serverLevel.random, Block.UPDATE_ALL);
 
-                BaseInstanceManager.get().setLobbySpawnPos(playerSpawn);
-                BaseInstanceManager.get().setLobbyCreated(true);
+                mgr.setLobbySpawnPos(playerSpawn);
+                mgr.setLobbyCreated(true);
 
                 serverLevel.removeBlock(playerSpawn, false);
 

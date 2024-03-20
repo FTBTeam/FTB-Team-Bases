@@ -1,4 +1,4 @@
-package dev.ftb.mods.ftbteambases.data;
+package dev.ftb.mods.ftbteambases.data.construction;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.ftb.mods.ftbteambases.command.CommandUtils;

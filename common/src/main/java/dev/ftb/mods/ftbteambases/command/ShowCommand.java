@@ -13,6 +13,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 
+import static dev.ftb.mods.ftbteambases.command.CommandUtils.colorize;
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
@@ -29,16 +30,22 @@ public class ShowCommand {
     private static int doShow(CommandSourceStack source, String name) throws CommandSyntaxException {
         Team team = FTBTeamsAPI.api().getManager().getTeamByName(name)
                 .orElseThrow(() -> TeamArgument.TEAM_NOT_FOUND.create(name));
-        LiveBaseDetails base = BaseInstanceManager.get().getBaseForTeam(team)
+        LiveBaseDetails base = BaseInstanceManager.get(source.getServer()).getBaseForTeam(team)
                 .orElseThrow(() -> CommandUtils.BASE_NOT_FOUND.create(team.getShortName()));
 
         source.sendSuccess(() -> Component.translatable("ftbteambases.message.show_base_header",
                 team.getShortName()).withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE), false);
-        source.sendSuccess(() -> Component.translatable("ftbteams.info.id", team.getTeamId()), false);
-        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_dimension", base.dimension().location()), false);
-        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_extents_block", base.extents().asBlockPosString()), false);
-        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_extents", base.extents()), false);
-        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_spawn_pos", MiscUtil.blockPosStr(base.spawnPos())), false);
+        source.sendSuccess(Component::empty, false);
+        source.sendSuccess(() -> Component.translatable("ftbteams.info.id",
+                colorize(team.getTeamId(), ChatFormatting.YELLOW)), false);
+        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_dimension",
+                colorize(base.dimension().location(), ChatFormatting.YELLOW)), false);
+        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_extents_block",
+                colorize(base.extents().asBlockPosString(), ChatFormatting.YELLOW)), false);
+        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_extents",
+                colorize(base.extents(), ChatFormatting.YELLOW)), false);
+        source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_spawn_pos",
+                colorize(MiscUtil.blockPosStr(base.spawnPos()), ChatFormatting.YELLOW)), false);
 
         return 1;
     }

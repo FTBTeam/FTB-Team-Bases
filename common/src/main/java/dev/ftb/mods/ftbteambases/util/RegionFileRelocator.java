@@ -3,6 +3,7 @@ package dev.ftb.mods.ftbteambases.util;
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
+import dev.ftb.mods.ftbteambases.data.construction.RelocatorTracker;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceKey;
@@ -48,7 +49,7 @@ public class RegionFileRelocator {
         this.source = source;
         this.force = force;
 
-        Path pregenPath = RegionFileUtil.getPregenPath(templateId, source.getServer());
+        Path pregenPath = RegionFileUtil.getPregenPath(templateId, source.getServer(), "region");
 
         destDir = RegionFileUtil.getPathForDimension(source.getServer(), dimensionKey, "region");
 

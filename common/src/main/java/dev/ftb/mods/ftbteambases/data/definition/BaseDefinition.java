@@ -9,9 +9,10 @@ import dev.architectury.platform.Platform;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.config.ClientConfig;
-import dev.ftb.mods.ftbteambases.data.workers.ConstructionWorker;
-import dev.ftb.mods.ftbteambases.data.workers.JigsawWorker;
-import dev.ftb.mods.ftbteambases.data.workers.RelocatingWorker;
+import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
+import dev.ftb.mods.ftbteambases.data.construction.workers.DynamicDimensionWorker;
+import dev.ftb.mods.ftbteambases.data.construction.workers.JigsawWorker;
+import dev.ftb.mods.ftbteambases.data.construction.workers.RelocatingWorker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -51,10 +52,14 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
     }
 
     public ConstructionWorker createConstructionWorker(ServerPlayer player) throws IOException {
-        if (constructionType.pregen().isPresent() && !dimensionSettings.privateDimension()) {
-            return new RelocatingWorker(player, this, constructionType.pregen().get());
+        if (constructionType.pregen().isPresent()) {
+            if (dimensionSettings.privateDimension()) {
+                return new DynamicDimensionWorker(player, this, constructionType.pregen().get());
+            } else {
+                return new RelocatingWorker(player, this, constructionType.pregen().get());
+            }
         } else if (constructionType.jigsaw().isPresent()) {
-            return new JigsawWorker(player, this, constructionType.jigsaw().get());
+            return new JigsawWorker(player, this, constructionType.jigsaw().get(), dimensionSettings.privateDimension());
         }
 
         throw new FTBTeamBasesException("base definition type not supported yet! " + id);

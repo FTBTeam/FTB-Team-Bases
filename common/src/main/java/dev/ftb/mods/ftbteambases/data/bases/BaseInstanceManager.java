@@ -1,28 +1,37 @@
 package dev.ftb.mods.ftbteambases.data.bases;
 
+import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.architectury.utils.GameInstance;
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
+import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
+import dev.ftb.mods.ftbteambases.util.NetherPortalPlacement;
 import dev.ftb.mods.ftbteambases.util.RegionCoords;
 import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
+import dev.ftb.mods.ftbteams.data.TeamArgument;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.PortalInfo;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.minecraft.world.phys.Vec3;
@@ -32,6 +41,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static dev.ftb.mods.ftbteambases.command.CommandUtils.DIM_MISSING;
+
 /**
  * Keeps track of live and archived base instances. Base details (location etc.) are tracked by team UUID.
  */
@@ -39,60 +50,60 @@ public class BaseInstanceManager extends SavedData {
     private static final int MAX_REGION_X = 2000;  // allows for x coord = 2000 * 512 -> X = 1,024,000
     private static final String SAVE_NAME = FTBTeamBases.MOD_ID + "_bases";
 
-    // serialization!
-    private static final Codec<Map<UUID,LiveBaseDetails>> LIVE_BASES_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, LiveBaseDetails.CODEC);
-    private static final Codec<Map<ResourceLocation,RegionCoords>> GEN_POS_CODEC = Codec.unboundedMap(ResourceLocation.CODEC, RegionCoords.CODEC);
-    private static final Codec<Map<ResourceLocation,Integer>> Z_OFF_CODEC = Codec.unboundedMap(ResourceLocation.CODEC, Codec.INT);
-    private static final Codec<Map<UUID,ArchivedBaseDetails>> ARCHIVED_BASES_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, ArchivedBaseDetails.CODEC);
-    private static final Codec<Map<UUID,BlockPos>> NETHER_PORTAL_POS_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, BlockPos.CODEC);
+    // serialization!  using xmap here, so we get mutable hashmaps in the live manager
+    private static final Codec<Map<UUID,LiveBaseDetails>> LIVE_BASES_CODEC
+            = Codec.unboundedMap(UUIDUtil.STRING_CODEC, LiveBaseDetails.CODEC).xmap(HashMap::new, Map::copyOf);
+    private static final Codec<Map<ResourceLocation,RegionCoords>> GEN_POS_CODEC
+            = Codec.unboundedMap(ResourceLocation.CODEC, RegionCoords.CODEC).xmap(HashMap::new, Map::copyOf);
+    private static final Codec<Map<ResourceLocation,Integer>> Z_OFF_CODEC
+            = Codec.unboundedMap(ResourceLocation.CODEC, Codec.INT).xmap(HashMap::new, Map::copyOf);
+    private static final Codec<Map<String,ArchivedBaseDetails>> ARCHIVED_BASES_CODEC
+            = Codec.unboundedMap(Codec.STRING, ArchivedBaseDetails.CODEC).xmap(HashMap::new, Map::copyOf);
+    private static final Codec<Map<UUID,BlockPos>> NETHER_PORTAL_POS_CODEC
+            = Codec.unboundedMap(UUIDUtil.STRING_CODEC, BlockPos.CODEC).xmap(HashMap::new, Map::copyOf);
+
     private static final Codec<BaseInstanceManager> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             LIVE_BASES_CODEC.fieldOf("bases").forGetter(mgr -> mgr.liveBases),
             GEN_POS_CODEC.fieldOf("gen_pos").forGetter(mgr -> mgr.storedGenPos),
             Z_OFF_CODEC.fieldOf("z_offset").forGetter(mgr -> mgr.storedZoffset),
             ARCHIVED_BASES_CODEC.fieldOf("archived_bases").forGetter(mgr -> mgr.archivedBases),
+            Codec.INT.fieldOf("next_archive_id").forGetter(mgr -> mgr.nextArchiveId),
             Codec.BOOL.fieldOf("is_lobby_created").forGetter(mgr -> mgr.isLobbyCreated),
             BlockPos.CODEC.fieldOf("lobby_spawn_pos").forGetter(mgr -> mgr.lobbySpawnPos),
             NETHER_PORTAL_POS_CODEC.fieldOf("nether_portal_pos").forGetter(mgr -> mgr.playerNetherPortalLocs)
-    ).apply(inst, BaseInstanceManager::createMutable));
+    ).apply(inst, BaseInstanceManager::new));
 
     // maps team UUID to live base details
     private final Map<UUID, LiveBaseDetails> liveBases;
-    // maps former base owner (player) UUID to archived base details
-    private final Map<UUID, ArchivedBaseDetails> archivedBases;
-    // maps dimension ID to next available generation pos (as far as we know) for that dimension
+    // list of all archived bases (which haven't yet been purged)
+    private final Map<String, ArchivedBaseDetails> archivedBases;
+    // region relocation: maps dimension ID to next available generation pos (as far as we know!) for that dimension
     private final Map<ResourceLocation, RegionCoords> storedGenPos;
-    // maps dimension ID to Z-increment
+    // region relocation: maps dimension ID to Z-axis-increment
     private final Map<ResourceLocation, Integer> storedZoffset;
     // stores player nether portal return positions
     private final Map<UUID,BlockPos> playerNetherPortalLocs;
 
     private boolean isLobbyCreated;
     private BlockPos lobbySpawnPos;
+    private int nextArchiveId;
 
-    private static BaseInstanceManager createMutable(Map<UUID, LiveBaseDetails> bases, Map<ResourceLocation, RegionCoords> genPos, Map<ResourceLocation, Integer> zOffsets, Map<UUID, ArchivedBaseDetails> archivedBases, boolean isLobbyCreated, BlockPos lobbySpawnPos, Map<UUID,BlockPos> netherPortalPos) {
-        // we need to make these mutable; codec deserialization provides immutable maps
-        return new BaseInstanceManager(new HashMap<>(bases), new HashMap<>(genPos), new HashMap<>(zOffsets), new HashMap<>(archivedBases),
-                isLobbyCreated, lobbySpawnPos, new HashMap<>(netherPortalPos));
-    }
-
-    private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos, Map<ResourceLocation, Integer> zOffsets, Map<UUID, ArchivedBaseDetails> archivedBases, boolean isLobbyCreated, BlockPos lobbySpawnPos, Map<UUID,BlockPos> netherPortalPos) {
+    private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos,
+                                Map<ResourceLocation, Integer> zOffsets, Map<String, ArchivedBaseDetails> archivedBases,
+                                int nextArchiveId, boolean isLobbyCreated, BlockPos lobbySpawnPos, Map<UUID,BlockPos> netherPortalPos) {
         this.liveBases = liveBases;
         this.storedGenPos = genPos;
         this.storedZoffset = zOffsets;
         this.archivedBases = archivedBases;
+        this.nextArchiveId = nextArchiveId;
         this.isLobbyCreated = isLobbyCreated;
         this.lobbySpawnPos = lobbySpawnPos;
         this.playerNetherPortalLocs = netherPortalPos;
     }
 
-    private BaseInstanceManager() {
-        this.liveBases = new HashMap<>();
-        this.storedGenPos = new HashMap<>();
-        this.storedZoffset = new HashMap<>();
-        this.archivedBases = new HashMap<>();
-        this.isLobbyCreated = false;
-        this.lobbySpawnPos = null;
-        this.playerNetherPortalLocs = new HashMap<>();
+    private static BaseInstanceManager createNew() {
+        return new BaseInstanceManager(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
+                0, false, BlockPos.ZERO, new HashMap<>());
     }
 
     public static BaseInstanceManager get() {
@@ -102,7 +113,7 @@ public class BaseInstanceManager extends SavedData {
     public static BaseInstanceManager get(MinecraftServer server) {
         DimensionDataStorage dataStorage = Objects.requireNonNull(server.getLevel(Level.OVERWORLD)).getDataStorage();
 
-        return dataStorage.computeIfAbsent(BaseInstanceManager::load, BaseInstanceManager::new, SAVE_NAME);
+        return dataStorage.computeIfAbsent(BaseInstanceManager::load, BaseInstanceManager::createNew, SAVE_NAME);
     }
 
     /**
@@ -134,7 +145,7 @@ public class BaseInstanceManager extends SavedData {
      * @param ownerId UUID of the owning team
      * @param liveBaseDetails the details to add
      */
-    public void add(UUID ownerId, LiveBaseDetails liveBaseDetails) {
+    public void addNewBase(UUID ownerId, LiveBaseDetails liveBaseDetails) {
         liveBases.put(ownerId, liveBaseDetails);
 
         setDirty();
@@ -170,16 +181,16 @@ public class BaseInstanceManager extends SavedData {
         return false;
     }
 
-    public boolean teleportToSpawn(ServerPlayer player, UUID baseId) {
-        return teleportToSpawn(player, baseId, false);
+    public boolean teleportToBaseSpawn(ServerPlayer player, UUID baseId) {
+        return teleportToBaseSpawn(player, baseId, false);
     }
 
-    public boolean teleportToSpawn(ServerPlayer player, UUID baseId, boolean setRespawnPoint) {
+    public boolean teleportToBaseSpawn(ServerPlayer player, UUID baseId, boolean setRespawnPoint) {
         LiveBaseDetails base = liveBases.get(baseId);
         if (base != null) {
             ServerLevel level = player.getServer().getLevel(base.dimension());
             if (level != null) {
-                Vec3 vec = Vec3.atBottomCenterOf(base.spawnPos());
+                Vec3 vec = Vec3.atCenterOf(base.spawnPos());
                 player.getServer().executeIfPossible(() ->
                         player.teleportTo(level, vec.x, vec.y, vec.z, player.getYRot(), player.getXRot())
                 );
@@ -194,16 +205,39 @@ public class BaseInstanceManager extends SavedData {
         return false;
     }
 
+    public boolean teleportToNether(ServerPlayer player, Team team) throws CommandSyntaxException {
+        ServerLevel nether = player.getServer().getLevel(Level.NETHER);
+        if (nether == null) {
+            throw DIM_MISSING.create(Level.NETHER.location().toString());
+        }
+
+        PortalInfo portalInfo = NetherPortalPlacement.teamSpecificEntryPoint(nether, player, team);
+        BlockPos pos = BlockPos.containing(portalInfo.pos.x(), portalInfo.pos.y(), portalInfo.pos.z());
+
+        ChunkPos chunkpos = new ChunkPos(pos);
+        nether.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
+        player.stopRiding();
+        if (player.isSleeping()) {
+            player.stopSleepInBed(true, true);
+        }
+        player.teleportTo(nether, portalInfo.pos.x(), portalInfo.pos.y() + 0.01, portalInfo.pos.z(), player.getYRot(), player.getXRot());
+        player.setPortalCooldown();
+
+        return true;
+    }
+
     @Override
     public CompoundTag save(CompoundTag compoundTag) {
         return Util.make(new CompoundTag(), tag ->
-                tag.put("manager", CODEC.encodeStart(NbtOps.INSTANCE, this).result()
+                tag.put("manager", CODEC.encodeStart(NbtOps.INSTANCE, this)
+                        .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to serialize base instance data: " + err))
                         .orElse(new CompoundTag())));
     }
 
     private static BaseInstanceManager load(CompoundTag tag) {
-        return CODEC.parse(NbtOps.INSTANCE, tag.getCompound("manager")).result()
-                .orElse(new BaseInstanceManager());
+        return CODEC.parse(NbtOps.INSTANCE, tag.getCompound("manager"))
+                .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to reload base instance data: " + err))
+                .orElse(BaseInstanceManager.createNew());
     }
 
     public Optional<LiveBaseDetails> getBaseForPlayer(ServerPlayer player) {
@@ -219,21 +253,68 @@ public class BaseInstanceManager extends SavedData {
         return DimensionUtils.teleport(serverPlayer, ServerLevel.OVERWORLD, lobbySpawnPos);
     }
 
-    public void deleteAndArchive(Team team) {
+    public void deleteAndArchive(MinecraftServer server, Team team) {
         LiveBaseDetails base = liveBases.remove(team.getTeamId());
 
         if (base != null) {
-            archivedBases.put(team.getOwner(), new ArchivedBaseDetails(base.extents(), base.dimension(), base.spawnPos(), team.getOwner(), Util.getEpochMillis()));
+            String name = server.getProfileCache().get(team.getOwner()).map(GameProfile::getName).orElse("unknown");
+            name += "-" + nextArchiveId;
+            archivedBases.put(name, new ArchivedBaseDetails(name, base.extents(), base.dimension(), base.spawnPos(), team.getOwner(), Util.getEpochMillis()));
+            nextArchiveId++;
             setDirty();
         }
     }
 
-    public Map<UUID,LiveBaseDetails>  allLiveBases() {
+    public Map<UUID,LiveBaseDetails> allLiveBases() {
         return Collections.unmodifiableMap(liveBases);
     }
 
     public Collection<ArchivedBaseDetails> getArchivedBases() {
-        return archivedBases.values();
+        return Collections.unmodifiableCollection(archivedBases.values());
+    }
+
+    public Collection<ArchivedBaseDetails> getArchivedBasesFor(UUID owner) {
+        return archivedBases.values().stream().filter(b -> b.ownerId().equals(owner)).toList();
+    }
+
+    public Optional<ArchivedBaseDetails> getArchivedBase(String archiveId) {
+        return Optional.ofNullable(archivedBases.get(archiveId));
+    }
+
+    public void unarchiveBase(MinecraftServer server, ArchivedBaseDetails base) throws CommandSyntaxException {
+        Team team = FTBTeamsAPI.api().getManager().getTeamForPlayerID(base.ownerId())
+                .orElseThrow(() -> TeamArgument.TEAM_NOT_FOUND.create(base.ownerId()));
+
+        if (team.isPlayerTeam()) {
+            Team newParty = team.createParty("", null);
+
+            addNewBase(newParty.getId(), base.makeLiveBaseDetails());
+            archivedBases.remove(base.archiveId());
+
+            ServerPlayer player = server.getPlayerList().getPlayer(base.ownerId());
+            if (player != null) {
+                BaseInstanceManager.get(server).teleportToBaseSpawn(player, newParty.getId());
+                player.displayClientMessage(Component.translatable("ftbteambases.message.restored_yours"), false);
+            }
+        } else {
+            String ownerName = server.getProfileCache().get(base.ownerId())
+                    .map(GameProfile::getName)
+                    .orElse(base.ownerId().toString());
+            throw CommandUtils.PLAYER_IN_PARTY.create(ownerName);
+        }
+    }
+
+    public void teleportToArchivedBase(ServerPlayer player, String archiveName) {
+        ArchivedBaseDetails base = archivedBases.get(archiveName);
+        if (base != null) {
+            ServerLevel level = player.getServer().getLevel(base.dimension());
+            if (level != null) {
+                Vec3 vec = Vec3.atCenterOf(base.spawnPos());
+                player.getServer().executeIfPossible(() ->
+                        player.teleportTo(level, vec.x, vec.y, vec.z, player.getYRot(), player.getXRot())
+                );
+            }
+        }
     }
 
     public boolean isLobbyCreated() {
@@ -268,5 +349,4 @@ public class BaseInstanceManager extends SavedData {
     public Optional<BlockPos> getPlayerNetherPortalLoc(ServerPlayer player) {
         return Optional.ofNullable(playerNetherPortalLocs.get(player.getUUID()));
     }
-
 }

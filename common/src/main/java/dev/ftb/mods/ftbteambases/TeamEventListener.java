@@ -7,6 +7,7 @@ import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.event.PlayerJoinedPartyTeamEvent;
 import dev.ftb.mods.ftbteams.api.event.PlayerLeftPartyTeamEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.food.FoodData;
 
 public class TeamEventListener {
     static void teamPlayerJoin(PlayerJoinedPartyTeamEvent event) {
@@ -19,19 +20,27 @@ public class TeamEventListener {
         if (ServerConfig.CLEAR_PLAYER_INV_ON_JOIN.get()) {
             DimensionUtils.clearPlayerInventory(serverPlayer);
         }
-        BaseInstanceManager.get().teleportToSpawn(serverPlayer, team.getTeamId(), true);
+        if (ServerConfig.HEAL_PLAYER_ON_JOIN.get()) {
+            serverPlayer.heal(serverPlayer.getMaxHealth());
+            FoodData foodData = serverPlayer.getFoodData();
+            foodData.setExhaustion(0);
+            foodData.setFoodLevel(20);
+            foodData.setSaturation(5.0f);
+        }
+
+        BaseInstanceManager.get(serverPlayer.getServer()).teleportToBaseSpawn(serverPlayer, team.getTeamId(), true);
     }
 
     static void teamPlayerLeftParty(PlayerLeftPartyTeamEvent event) {
         ServerPlayer serverPlayer = event.getPlayer();
         if (serverPlayer != null) {
-            var baseManager = BaseInstanceManager.get();
+            var baseManager = BaseInstanceManager.get(serverPlayer.getServer());
             baseManager.getBaseForTeam(event.getTeam()).ifPresent(base -> {
                 if (ServerConfig.CLEAR_PLAYER_INV_ON_LEAVE.get()) {
                     DimensionUtils.clearPlayerInventory(serverPlayer);
                 }
                 if (event.getTeamDeleted()) {
-                    baseManager.deleteAndArchive(event.getTeam());
+                    baseManager.deleteAndArchive(serverPlayer.getServer(), event.getTeam());
                 }
                 baseManager.teleportToLobby(serverPlayer);
             });

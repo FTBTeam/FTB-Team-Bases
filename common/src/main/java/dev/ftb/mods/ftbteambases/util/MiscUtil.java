@@ -1,6 +1,8 @@
 package dev.ftb.mods.ftbteambases.util;
 
+import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.GameRules;
@@ -25,5 +27,10 @@ public class MiscUtil {
                 }
             }
         }
+    }
+
+    @ExpectPlatform
+    public static double getTickTime(MinecraftServer server, ResourceKey<Level> key) {
+        throw new AssertionError();
     }
 }

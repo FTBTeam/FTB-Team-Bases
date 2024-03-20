@@ -19,7 +19,7 @@ public class LobbyCommand {
     private static int doGoHome(CommandSourceStack source) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
 
-        if (!BaseInstanceManager.get().teleportToLobby(player)) {
+        if (!BaseInstanceManager.get(source.getServer()).teleportToLobby(player)) {
             throw CommandUtils.CANT_TELEPORT.create("<lobby>");
         }
 

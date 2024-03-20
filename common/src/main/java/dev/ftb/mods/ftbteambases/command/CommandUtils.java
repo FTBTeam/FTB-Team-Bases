@@ -1,19 +1,21 @@
 package dev.ftb.mods.ftbteambases.command;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import dev.ftb.mods.ftbteambases.FTBTeamBases;
+import dev.ftb.mods.ftbteambases.data.bases.ArchivedBaseDetails;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.ClickEvent;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
@@ -21,11 +23,34 @@ import java.util.concurrent.CompletableFuture;
 
 public class CommandUtils {
     public static final DynamicCommandExceptionType BASE_NOT_FOUND
-            = new DynamicCommandExceptionType(object -> Component.translatable("ftbteambases.message.base_not_found", object));
+            = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.base_not_found", object));
     public static final DynamicCommandExceptionType CANT_TELEPORT
-            = new DynamicCommandExceptionType(object -> Component.translatable("ftbteambases.message.could_not_teleport", object));
+            = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.could_not_teleport", object));
     public static final DynamicCommandExceptionType CONSTRUCTION_IN_PROGRESS
-            = new DynamicCommandExceptionType(object -> Component.translatable("ftbteambases.message.construction_in_progress", object));
+            = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.construction_in_progress", object));
+    public static final DynamicCommandExceptionType PLAYER_IN_PARTY = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.player_in_party", object));
+    public static final DynamicCommandExceptionType ARCHIVE_NOT_FOUND = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.archived_base_not_found", object));
+    public static final DynamicCommandExceptionType DIM_MISSING = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.missing_dimension", object));
+
+    public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context, Commands.CommandSelection selection) {
+        dispatcher.register(Commands.literal(FTBTeamBases.MOD_ID)
+                .then(RelocateCommand.register())
+                .then(CreateBaseCommand.register())
+                .then(HomeCommand.register())
+                .then(LobbyCommand.register())
+                .then(ListCommand.register())
+                .then(ShowCommand.register())
+                .then(VisitCommand.register())
+                .then(VisitCommand.registerNether())
+                .then(ArchiveCommand.register())
+        );
+    }
 
     static CompletableFuture<Suggestions> suggestDefinitions(SuggestionsBuilder builder) {
         List<String> ids = BaseDefinitionManager.getServerInstance().getTemplateIds().stream()
@@ -36,7 +61,7 @@ public class CommandUtils {
 
     static CompletableFuture<Suggestions> suggestLiveBases(SuggestionsBuilder builder) {
         List<String> ids = FTBTeamsAPI.api().getManager().getTeams().stream()
-                .filter(team -> BaseInstanceManager.get().getBaseForTeam(team).isPresent())
+                .filter(team -> team.isPartyTeam() && BaseInstanceManager.get().getBaseForTeam(team).isPresent())
                 .map(Team::getShortName)
                 .toList();
         return SharedSuggestionProvider.suggest(ids, builder);
@@ -44,7 +69,7 @@ public class CommandUtils {
 
     static CompletableFuture<Suggestions> suggestArchivedBases(SuggestionsBuilder builder) {
         List<String> ids = BaseInstanceManager.get().getArchivedBases().stream()
-                .map(base -> base.ownerId().toString())
+                .map(ArchivedBaseDetails::archiveId)
                 .toList();
         return SharedSuggestionProvider.suggest(ids, builder);
     }
@@ -62,5 +87,9 @@ public class CommandUtils {
 
     public static void message(CommandSourceStack source, ChatFormatting color, String translationKey, Object... params) {
         source.sendSuccess(() -> Component.translatable(translationKey, params).withStyle(color), false);
+    }
+
+    public static MutableComponent colorize(Object o, ChatFormatting... colors) {
+        return Component.literal(o.toString()).withStyle(colors);
     }
 }
