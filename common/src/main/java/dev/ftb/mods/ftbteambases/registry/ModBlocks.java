@@ -16,7 +16,8 @@ public class ModBlocks {
     public static final RegistrySupplier<Block> PORTAL = BLOCKS.register("portal", BasesPortalBlock::new);
 
     // Note: not in creative tab: you can only get this with "/give @s ftbteambases:portal"
-    // Intended for builders to create lobby structures
+    //  or by middle-clicking a portal in creative mode
+    // Intended for builders to create pregen lobby structures
     public static final RegistrySupplier<Item> PORTAL_ITEM = ITEMS.register("portal", () -> new BlockItem(PORTAL.get(), new Item.Properties()));
 
     public static void init() {
