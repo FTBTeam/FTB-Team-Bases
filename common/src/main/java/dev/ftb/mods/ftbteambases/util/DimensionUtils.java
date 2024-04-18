@@ -34,37 +34,41 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class DimensionUtils {
     private static final BlockIgnoreProcessor IGNORE_PROCESSOR = new BlockIgnoreProcessor(ImmutableList.of(Blocks.STRUCTURE_VOID, Blocks.STRUCTURE_BLOCK));
 
-    public static BlockPos locateSpawn(StructureTemplate template) {
+    public static Optional<BlockPos> locateSpawn(StructureTemplate template) {
         StructurePlaceSettings placeSettings = makePlacementSettings(template);
-        BlockPos spawnPos = BlockPos.ZERO;
 
         for (var info : template.filterBlocks(BlockPos.ZERO, placeSettings, Blocks.STRUCTURE_BLOCK)) {
             if (info.nbt() != null && StructureMode.valueOf(info.nbt().getString("mode")) == StructureMode.DATA) {
                 FTBTeamBases.LOGGER.info("Found data block at [{}] with data [{}]", info.pos(), info.nbt().getString("metadata"));
 
                 if (info.nbt().getString("metadata").equalsIgnoreCase("spawn_point")) {
-                    spawnPos = info.pos();
+                    return Optional.of(info.pos());
                 }
             }
         }
 
-        return spawnPos;
+        return Optional.empty();
     }
 
-    public static StructurePlaceSettings makePlacementSettings(StructureTemplate template) {
+    public static StructurePlaceSettings makePlacementSettings(StructureTemplate template, boolean includeEntities) {
         Vec3i size = template.getSize();
         StructurePlaceSettings settings = new StructurePlaceSettings();
-        settings.setIgnoreEntities(!ServerConfig.ENTITIES_IN_START_STRUCTURE.get());
+        settings.setIgnoreEntities(!includeEntities);
         settings.addProcessor(IGNORE_PROCESSOR);
         settings.addProcessor(WaterLoggingFixProcessor.INSTANCE);
         settings.setRotationPivot(new BlockPos(size.getX() / 2, size.getY() / 2, size.getZ() / 2));
         settings.setRotation(Rotation.NONE);
         return settings;
+    }
+
+    public static StructurePlaceSettings makePlacementSettings(StructureTemplate template) {
+        return makePlacementSettings(template, ServerConfig.ENTITIES_IN_START_STRUCTURE.get());
     }
 
     public static boolean isTeamDimension(Level level) {

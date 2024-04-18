@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public record JigsawParams(ResourceLocation templatePool, ResourceLocation target, int yPos, int maxGenerationDepth,
                            Optional<BlockPos> generationOffset, FrontAndTop jigsawOrientation,
-                           JigsawBlockEntity.JointType jointType) {
+                           JigsawBlockEntity.JointType jointType) implements INetworkWritable {
     public static final Codec<JigsawParams> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             ResourceLocation.CODEC.fieldOf("template_pool").forGetter(JigsawParams::templatePool),
             ResourceLocation.CODEC.fieldOf("target").forGetter(JigsawParams::target),
@@ -36,6 +36,7 @@ public record JigsawParams(ResourceLocation templatePool, ResourceLocation targe
         return new JigsawParams(templatePool, target, yPos, maxGen, offset, orientation, jointType);
     }
 
+    @Override
     public void toBytes(FriendlyByteBuf buf) {
         buf.writeResourceLocation(templatePool);
         buf.writeResourceLocation(target);

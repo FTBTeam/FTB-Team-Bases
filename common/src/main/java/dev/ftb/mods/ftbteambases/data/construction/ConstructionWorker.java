@@ -21,6 +21,15 @@ public interface ConstructionWorker {
 
     void tick();
 
+    /**
+     * Determine the default position for players to spawn for the given base type. This default implementation puts
+     * the player at the X/Z position returned by {@link #getSpawnXZ()}, offset by the spawn offset defined in the base
+     * definition, and at a Y position of the surface at that X/Z position, also offset by the base definition's offset.
+     *
+     * @param destLevel the level being spawned in
+     * @param baseDefinition the base definition
+     * @return a position where players should be spawned
+     */
     default BlockPos getInitialSpawnPos(Level destLevel, BaseDefinition baseDefinition) {
         BlockPos offset = baseDefinition.spawnOffset();
         XZ spawnXZ = getSpawnXZ().offset(offset.getX(), offset.getZ());

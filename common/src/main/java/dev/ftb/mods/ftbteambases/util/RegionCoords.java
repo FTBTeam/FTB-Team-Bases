@@ -3,6 +3,8 @@ package dev.ftb.mods.ftbteambases.util;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftblibrary.math.XZ;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
 
 public record RegionCoords(int x, int z) {
     public static final Codec<RegionCoords> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -20,6 +22,10 @@ public record RegionCoords(int x, int z) {
 
     public String filename() {
         return String.format("r.%d.%d.mca", x, z);
+    }
+
+    public BlockPos getBlockPos(Vec3i offset) {
+        return new BlockPos((x << 9) + offset.getX(), offset.getY(), (z << 9) + offset.getZ());
     }
 
     @Override

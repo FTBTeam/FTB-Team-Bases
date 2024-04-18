@@ -7,11 +7,11 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.Optional;
 
-public record PrebuiltStructure(ResourceLocation structureLocation, Optional<ResourceLocation> structureSetId,
-                                int height) {
+public record PrebuiltStructure(ResourceLocation startStructure, Optional<ResourceLocation> structureSetId,
+                                int height) implements INetworkWritable{
     public static final Codec<PrebuiltStructure> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            ResourceLocation.CODEC.fieldOf("structure_location")
-                    .forGetter(PrebuiltStructure::structureLocation),
+            ResourceLocation.CODEC.fieldOf("start_structure")
+                    .forGetter(PrebuiltStructure::startStructure),
             ResourceLocation.CODEC.optionalFieldOf("structure_set")
                     .forGetter(PrebuiltStructure::structureSetId),
             Codec.INT.optionalFieldOf("height", 64)
@@ -22,8 +22,9 @@ public record PrebuiltStructure(ResourceLocation structureLocation, Optional<Res
         return new PrebuiltStructure(buf.readResourceLocation(), buf.readOptional(FriendlyByteBuf::readResourceLocation), buf.readVarInt());
     }
 
+    @Override
     public void toBytes(FriendlyByteBuf buf) {
-        buf.writeResourceLocation(structureLocation);
+        buf.writeResourceLocation(startStructure);
         buf.writeOptional(structureSetId, FriendlyByteBuf::writeResourceLocation);
         buf.writeVarInt(height);
     }

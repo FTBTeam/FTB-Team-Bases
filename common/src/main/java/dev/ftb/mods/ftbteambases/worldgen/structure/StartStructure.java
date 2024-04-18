@@ -41,16 +41,16 @@ public class StartStructure extends Structure {
 
 		BaseDefinitionManager mgr = BaseDefinitionManager.getServerInstance();
 		var res = mgr.getBaseDefinition(provider.getBaseDefinitionId()).flatMap(baseDefinition -> baseDefinition.constructionType().prebuilt().map(prebuiltStructure -> {
-            StructureTemplate template = context.structureTemplateManager().getOrCreate(prebuiltStructure.structureLocation());
+            StructureTemplate template = context.structureTemplateManager().getOrCreate(prebuiltStructure.startStructure());
 
-            BlockPos spawnPos = DimensionUtils.locateSpawn(template);
+            BlockPos spawnPos = DimensionUtils.locateSpawn(template).orElse(BlockPos.ZERO);
             int x = -spawnPos.getX();
             int y = -spawnPos.getY();
             int z = -spawnPos.getZ();
             BlockPos blockPos = new BlockPos(x, y + prebuiltStructure.height(), z);
 
             return Optional.of(new GenerationStub(blockPos, builder ->
-                    builder.addPiece(new StartStructurePiece(context.structureTemplateManager(), prebuiltStructure.structureLocation(), blockPos, template)))
+                    builder.addPiece(new StartStructurePiece(context.structureTemplateManager(), prebuiltStructure.startStructure(), blockPos, template)))
             );
         }).orElse(Optional.empty()));
 

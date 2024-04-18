@@ -188,7 +188,7 @@ public class FTBTeamBases {
                 // paste the lobby structure into the overworld
                 StructureTemplate lobby = serverLevel.getStructureManager().getOrCreate(lobbyLocation);
                 StructurePlaceSettings placeSettings = DimensionUtils.makePlacementSettings(lobby);
-                BlockPos spawnPos = DimensionUtils.locateSpawn(lobby);
+                BlockPos spawnPos = DimensionUtils.locateSpawn(lobby).orElse(BlockPos.ZERO);
                 BlockPos lobbyLoc = BlockPos.ZERO.offset(-(lobby.getSize().getX() / 2), ServerConfig.LOBBY_Y_POS.get(), -(lobby.getSize().getZ() / 2));
                 BlockPos playerSpawn = spawnPos.offset(lobbyLoc.getX(), lobbyLoc.getY(), lobbyLoc.getZ());
 

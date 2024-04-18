@@ -13,6 +13,7 @@ import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
 import dev.ftb.mods.ftbteambases.data.construction.workers.DynamicDimensionWorker;
 import dev.ftb.mods.ftbteambases.data.construction.workers.JigsawWorker;
 import dev.ftb.mods.ftbteambases.data.construction.workers.RelocatingWorker;
+import dev.ftb.mods.ftbteambases.data.construction.workers.SingleStructureWorker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -60,6 +61,8 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
             }
         } else if (constructionType.jigsaw().isPresent()) {
             return new JigsawWorker(player, this, constructionType.jigsaw().get(), dimensionSettings.privateDimension());
+        } else if (constructionType.singleStructure().isPresent()) {
+            return new SingleStructureWorker(player, this, constructionType.singleStructure().get(), dimensionSettings.privateDimension());
         }
 
         throw new FTBTeamBasesException("base definition type not supported yet! " + id);
