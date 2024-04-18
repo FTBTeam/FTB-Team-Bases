@@ -61,8 +61,8 @@ public class BaseConstructionAgent {
                             // teleport player to newly-created base
                             BaseInstanceManager.get(server).teleportToBaseSpawn(player, party.getId());
                         }
-                        FTBTeamBases.LOGGER.info("team base created for player id {}, party id = {}, dim id = {}",
-                                playerId, party.getId(), destLevel.dimension().location());
+                        FTBTeamBases.LOGGER.info("team base created for player id {}, party id = {}, dim id = {}, type = {}",
+                                playerId, party.getId(), destLevel.dimension().location(), baseDefinition.id());
                     } catch (IllegalStateException e) {
                         if (player != null) {
                             player.displayClientMessage(Component.literal("can't create party team for you! " + e.getMessage()), false);

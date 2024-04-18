@@ -58,7 +58,7 @@ public class DynamicDimensionManagerImpl {
         );
 
         ResourceLocation prebuiltStructureId = baseDefinition.constructionType().prebuilt()
-                .map(PrebuiltStructure::structureLocation).orElse(FTBTeamBases.NO_TEMPLATE_ID);
+                .map(PrebuiltStructure::startStructure).orElse(FTBTeamBases.NO_TEMPLATE_ID);
         ChunkGenerator chunkGenerator = ServerConfig.CHUNK_GENERATOR.get()
                 .makeGenerator(registryAccess, prebuiltStructureId);
 

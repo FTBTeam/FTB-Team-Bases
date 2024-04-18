@@ -1,6 +1,6 @@
 {
   "id": "ftbteambases:default_prebuilt",
-  "description": "Test Base (Structure/Shared)",
+  "description": "Test Base (Prebuilt/Shared)",
   "preview_image": "ftbteambases:textures/spawn/default.png",
   "dev_mode": true,
   "construction": {
