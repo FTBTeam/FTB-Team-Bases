@@ -8,6 +8,7 @@ import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.data.bases.ArchivedBaseDetails;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
+import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import net.minecraft.ChatFormatting;
@@ -35,6 +36,8 @@ public class CommandUtils {
             Component.translatable("ftbteambases.message.player_in_party", object));
     public static final DynamicCommandExceptionType ARCHIVE_NOT_FOUND = new DynamicCommandExceptionType(object ->
             Component.translatable("ftbteambases.message.archived_base_not_found", object));
+    public static final DynamicCommandExceptionType PURGE_NOT_FOUND = new DynamicCommandExceptionType(object ->
+            Component.translatable("ftbteambases.message.purge_not_found", object));
     public static final DynamicCommandExceptionType DIM_MISSING = new DynamicCommandExceptionType(object ->
             Component.translatable("ftbteambases.message.missing_dimension", object));
 
@@ -49,6 +52,7 @@ public class CommandUtils {
                 .then(VisitCommand.register())
                 .then(VisitCommand.registerNether())
                 .then(ArchiveCommand.register())
+                .then(PurgeCommand.register())
         );
     }
 
@@ -74,10 +78,20 @@ public class CommandUtils {
         return SharedSuggestionProvider.suggest(ids, builder);
     }
 
+    static CompletableFuture<Suggestions> suggestPendingPurges(SuggestionsBuilder builder) {
+        return SharedSuggestionProvider.suggest(PurgeManager.INSTANCE.getPendingIds(), builder);
+    }
+
     public static Component makeCommandClicky(String translationKey, ChatFormatting color, String command) {
+        return makeCommandClicky(translationKey, color, command, false);
+    }
+
+    public static Component makeCommandClicky(String translationKey, ChatFormatting color, String command, boolean suggestOnly) {
+        ClickEvent.Action action = suggestOnly ? ClickEvent.Action.SUGGEST_COMMAND : ClickEvent.Action.RUN_COMMAND;
         return Component.literal("[")
-                .append(Component.translatable(translationKey).withStyle(Style.EMPTY.withColor(color)
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))))
+                .append(Component.translatable(translationKey)
+                        .withStyle(Style.EMPTY.withColor(color)
+                        .withClickEvent(new ClickEvent(action, command))))
                 .append("]");
     }
 
@@ -87,6 +101,10 @@ public class CommandUtils {
 
     public static void message(CommandSourceStack source, ChatFormatting color, String translationKey, Object... params) {
         source.sendSuccess(() -> Component.translatable(translationKey, params).withStyle(color), false);
+    }
+
+    public static void error(CommandSourceStack source, MutableComponent msg) {
+        source.sendFailure(msg.withStyle(ChatFormatting.RED));
     }
 
     public static MutableComponent colorize(Object o, ChatFormatting... colors) {

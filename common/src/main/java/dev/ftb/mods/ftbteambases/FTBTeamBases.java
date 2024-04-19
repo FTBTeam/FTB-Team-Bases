@@ -10,6 +10,7 @@ import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.construction.RelocatorTracker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
+import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.net.FTBTeamBasesNet;
 import dev.ftb.mods.ftbteambases.net.SyncBaseTemplatesMessage;
 import dev.ftb.mods.ftbteambases.net.VoidTeamDimensionMessage;
@@ -62,6 +63,7 @@ public class FTBTeamBases {
         LifecycleEvent.SERVER_BEFORE_START.register(FTBTeamBases::serverBeforeStart);
         LifecycleEvent.SERVER_STARTING.register(FTBTeamBases::serverStarting);
         LifecycleEvent.SERVER_STARTED.register(FTBTeamBases::serverStarted);
+        LifecycleEvent.SERVER_STOPPING.register(FTBTeamBases::serverStopping);
         LifecycleEvent.SERVER_LEVEL_LOAD.register(FTBTeamBases::onLevelLoad);
 
         TickEvent.SERVER_POST.register(FTBTeamBases::onServerTick);
@@ -88,6 +90,9 @@ public class FTBTeamBases {
     private static void serverBeforeStart(MinecraftServer server) {
         var configPath = server.getWorldPath(ConfigUtil.SERVER_CONFIG_DIR);
         ConfigUtil.loadDefaulted(ServerConfig.CONFIG, configPath, FTBTeamBases.MOD_ID);
+
+        PurgeManager.INSTANCE.onInit(server);
+        PurgeManager.INSTANCE.checkForPurges(server);
     }
 
     private static void serverStarting(MinecraftServer server) {
@@ -106,6 +111,10 @@ public class FTBTeamBases {
             level.setDefaultSpawnPos(mgr.getLobbySpawnPos(), 180F);
             LOGGER.info("Updating overworld spawn pos to the lobby location: " + mgr.getLobbySpawnPos());
         }
+    }
+
+    private static void serverStopping(MinecraftServer server) {
+        PurgeManager.INSTANCE.onShutdown();
     }
 
     private static void onLevelLoad(ServerLevel serverLevel) {

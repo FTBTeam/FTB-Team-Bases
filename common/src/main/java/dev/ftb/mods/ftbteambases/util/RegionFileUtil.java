@@ -60,18 +60,22 @@ public class RegionFileUtil {
         return subDir == null ? base : base.resolve(subDir);
     }
 
-    @NotNull
-    public static Path getPathForDimension(MinecraftServer server, ResourceKey<Level> levelKey, String subDirectory) {
+    public static Path getPathForDimension(MinecraftServer server, ResourceKey<Level> levelKey) {
         Path levelDataDir = server.getWorldPath(LevelResource.ROOT);
         if (Level.OVERWORLD.equals(levelKey)) {
-            return levelDataDir.resolve(subDirectory);
+            return levelDataDir;
         } else if (Level.NETHER.equals(levelKey)) {
-            return levelDataDir.resolve("DIM-1").resolve(subDirectory);
+            return levelDataDir.resolve("DIM-1");
         } else if (Level.END.equals(levelKey)) {
-            return levelDataDir.resolve("DIM1").resolve(subDirectory);
+            return levelDataDir.resolve("DIM1");
         } else {
-            return levelDataDir.resolve("dimensions").resolve(levelKey.location().getNamespace()).resolve(levelKey.location().getPath()).resolve(subDirectory);
+            return levelDataDir.resolve("dimensions").resolve(levelKey.location().getNamespace()).resolve(levelKey.location().getPath());
         }
+    }
+
+    @NotNull
+    public static Path getPathForDimension(MinecraftServer server, ResourceKey<Level> levelKey, String subDirectory) {
+        return getPathForDimension(server, levelKey).resolve(subDirectory);
     }
 
     public static void copyIfExists(MinecraftServer server, Path pregenDir, ResourceKey<Level> dimensionKey) {

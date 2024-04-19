@@ -4,6 +4,11 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftblibrary.math.XZ;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 public record RegionExtents(RegionCoords start, RegionCoords end) {
     public static final Codec<RegionExtents> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             RegionCoords.CODEC.fieldOf("start").forGetter(RegionExtents::start),
@@ -23,5 +28,15 @@ public record RegionExtents(RegionCoords start, RegionCoords end) {
         XZ s = XZ.of(start.x() * 512, start.z() * 512);
         XZ e = XZ.of(end.x() * 512 + 511, end.z() * 512 + 511);
         return s + " -> " + e;
+    }
+
+    public Collection<Path> files(Path parentDir) {
+        List<Path> res = new ArrayList<>();
+        for (int x = start.x(); x <= end.x(); x++) {
+            for (int z = start.z(); z <= end.z(); z++) {
+                res.add(parentDir.resolve(String.format("r.%d.%d.mca", x, z)));
+            }
+        }
+        return res;
     }
 }
