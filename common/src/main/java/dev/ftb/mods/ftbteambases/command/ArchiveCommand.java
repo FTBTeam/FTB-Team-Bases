@@ -88,19 +88,22 @@ public class ArchiveCommand {
             source.sendSuccess(Component::empty, false);
             bases.forEach(base -> {
                 String playerName = source.getServer().getProfileCache().get(base.ownerId()).orElse(UNKNOWN).getName();
-                String when = DateFormat.getDateTimeInstance().format(Date.from(Instant.ofEpochMilli(base.archiveTime())));
+                String when = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date.from(Instant.ofEpochMilli(base.archiveTime())));
 
                 boolean isOwnerInParty = FTBTeamsAPI.api().getManager().getTeamForPlayerID(base.ownerId()).map(Team::isPlayerTeam).orElse(false);
 
                 Component player = CommandUtils.makeTooltipComponent(Component.literal(playerName), ChatFormatting.YELLOW, base.ownerId().toString());
                 Component restore = CommandUtils.makeCommandClicky("ftbteambases.gui.restore",
                         isOwnerInParty ? ChatFormatting.GREEN : ChatFormatting.GRAY, "/ftbteambases archive restore " + base.archiveId());
+                Component purge = CommandUtils.makeCommandClicky("ftbteambases.gui.purge",
+                        ChatFormatting.RED, "/ftbteambases purge id " + base.archiveId(), true);
 
                 source.sendSuccess(() -> Component.literal("• ")
                                 .append(Component.literal(base.archiveId()).withStyle(ChatFormatting.AQUA)).append(" : ")
                                 .append(player)
                                 .append(" (").append(Component.literal(when)).append(")")
-                                .append("  ").append(restore),
+                                .append("  ").append(restore)
+                                .append("  ").append(purge),
                         false);
             });
         }

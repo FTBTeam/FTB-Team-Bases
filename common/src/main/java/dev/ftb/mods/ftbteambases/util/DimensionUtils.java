@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 
 public class DimensionUtils {
     private static final BlockIgnoreProcessor IGNORE_PROCESSOR = new BlockIgnoreProcessor(ImmutableList.of(Blocks.STRUCTURE_VOID, Blocks.STRUCTURE_BLOCK));
+    public static final String PRIVATE_DIM_PREFIX = "private_for_";
 
     public static Optional<BlockPos> locateSpawn(StructureTemplate template) {
         StructurePlaceSettings placeSettings = makePlacementSettings(template);
@@ -73,6 +74,10 @@ public class DimensionUtils {
 
     public static boolean isTeamDimension(Level level) {
         return level.dimension().location().getNamespace().equals(FTBTeamBases.MOD_ID);
+    }
+
+    public static boolean isPrivateTeamDimension(ResourceLocation id) {
+        return id.getNamespace().equals(FTBTeamBases.MOD_ID) && id.getPath().startsWith(PRIVATE_DIM_PREFIX);
     }
 
     public static boolean isPortalDimension(Level level) {

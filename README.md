@@ -15,7 +15,7 @@ FTB Team Bases is a replacement in MC 1.20.1 for earlier base management mods, i
 
 The mod is driven by _base definition_ files, which are JSON files in a custom datapack (`<mod-id>/ftb_base_definitions/*.json`). Each definition file is a template from which a live team base is created. Every live team base has a 1:1 association with an FTB Teams team; when FTB Team Bases is loaded, teams can _only_ be created by creating a base, and when a team is disbanded, players will be ejected from that base, and the base archived.
 
-Three default base definition files are shipped with the mod, although none of these will be displayed as GUI options when creating a base, unless you're running the mod in a development instance (from an IDE), or you've set `show_dev_mode` to **true** in the client config.
+Four default base definition files are shipped with the mod, although none of these will be displayed as GUI options when creating a base, unless you're running the mod in a development instance (from an IDE), or you've set `show_dev_mode` to **true** in the client config.
 
 ## Getting Started
 
@@ -23,7 +23,7 @@ Three default base definition files are shipped with the mod, although none of t
 
 To set up a pregenerated base with region-relocation into the default shared dimension, use this as a start point:
 
-```json
+```json5
 {
   "id": "ftbteambases:my_base_type",
   "description": "Some description text",
@@ -37,19 +37,33 @@ To set up a pregenerated base with region-relocation into the default shared dim
 }
 ```
 
-To set up a pregenerated base in a private dimension, with no region relocation:
+To set up a pregenerated base in a private dimension, with no region relocation, just change the `dimension` section above:
 
-```json
+```json5
+{
+  //...
+  "dimension": {
+    "private": true,
+    "dimension_type": "ftbteambases:default"
+  }
+}
+```
+
+To set up a single-structure base in the shared dimension:
+
+```json5
 {
   "id": "ftbteambases:my_base_type",
   "description": "Some description text",
   "preview_image": "ftbteambases:textures/spawn/default.png",
   "construction": {
-    "pregen_template": "my_template"
+    "structure_location": "minecraft:village/plains/houses/plains_medium_house_1",
+    "y_pos": 64,
+    "include_entities": false
   },
+  "spawn_offset": [ 0, -6, 0 ],
   "dimension": {
-    "private": true,
-    "dimension_type": "ftbteambases:default"
+    "private": false
   }
 }
 ```
@@ -60,9 +74,22 @@ Several fields will need to be customised:
 * `id` is a unique template ID. It should match the filename you're using.
 * `description` is free-form text which should be kept short
 * `preview_image` is a resource location for a texture to display in the selection GUI. Typically, you'd use a screenshot of the base.
-* `pregen_template` defines where the template MCA files which will be copied/relocated can be found. More on this below.
 * `private` determines whether the base will be created in the shared dimension (`ftbteambases:bases` by default), or if a new dynamic dimension should be created for the base.
   * When `private` is true, the `dimension_type` field specifies the [dimension type](https://minecraft.fandom.com/wiki/Custom_dimension#Dimension_type) for the new dimension. `ftbteambases:default` works in many cases, but you're free to use a custom type here.
+* `spawn_offset` is an offset for the default player spawn position; defaults to [0,0,0] if omitted.
+  * The default position is typically at the center of the region(s), and at a Y position of the world's surface.
+  * In the third example above, the player would spawn on top of the village house roof if this offset were not specified. 
+
+Fields in the `construction` section depend on the type of base you're constructing.
+
+For pregenerated bases:
+* `pregen_template` defines where the template MCA files which will be copied/relocated can be found, for pregenerated bases. More on this below.
+
+For single-structure bases:
+* `structure_location` defines a NBT structure which will be pasted into the world, for single-structure bases.
+* `y_pos` determines the Y position at which the structure will be pasted (the X/Z position is at the center of the region)
+  * If omitted, the structure will be pasted at the world surface; for void dimensions, it's recommended to include this.
+* `include_entities` controls whether any entities saved in the NBT structure will be added to the world; defaults to false.
 
 #### Pregen Templates
 Now you need to put your template MCA files in a directory within your top-level Minecraft server instance: `<instance>/ftbteambases/pregen/<template-name>/`, with `region/`, `entity/` and `poi/` subdirectories. Region MCA files *must* be present, but entity and POI files are optional.
@@ -117,8 +144,13 @@ Note that base creation can take a few seconds, especially if there are multiple
 * `/ftbteambases archive list` - show all archived bases.
 * `/ftbteambases archive restore <name>` - restore the named archive
   * This can also be done by clicking the **[Restore]** "button" beside the base in `archive list` output
+* `/ftbteambases purge id <archive-id>` - schedule an archived base for permanent deletion; `<archive_id>` can be found from the `archive list` output
+  * This can also be done by clicking the **[Purge]** "button" beside the base in `archive list` output
+* `/ftbteambases purge older <days>` - schedule all archived bases which were archived at least `<days>` days ago for deletion
+* `/ftbteambases purge cancel_all` - unschedule all pending base purges
+* `/ftbteambases purge cancel <archive-id>` - unschedule a specific pending base purge
 
-**Planned**: archive purge functionality.
+Bases scheduled for purge will be _permanently_ deleted on the next server restart. A server backup system is recommended if you use this!
 
 ## Config Files
 

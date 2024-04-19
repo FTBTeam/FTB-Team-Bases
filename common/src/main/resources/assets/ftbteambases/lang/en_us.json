@@ -8,6 +8,7 @@
   "ftbteambases.message.bases": "%s Team Base(s):",
   "ftbteambases.message.base_not_found": "No base found for team %s!",
   "ftbteambases.message.archived_base_not_found": "No archived base found for %s!",
+  "ftbteambases.message.purge_not_found": "No pending purge found for %s!",
   "ftbteambases.message.show_base_header": "Team Base Details for %s",
   "ftbteambases.message.base_dimension": "Dimension: %s",
   "ftbteambases.message.base_extents": "Region Extents: %s",

@@ -73,7 +73,8 @@ public class DynamicDimensionManager {
 	}
 
 	@ExpectPlatform
-	public static void destroy_Internal(MinecraftServer server, Set<ResourceKey<Level>> keysToRemove) {
+	public static void
+	destroy_Internal(MinecraftServer server, Set<ResourceKey<Level>> keysToRemove) {
 		throw new AssertionError();
 	}
 

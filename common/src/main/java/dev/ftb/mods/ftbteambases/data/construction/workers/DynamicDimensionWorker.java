@@ -7,6 +7,7 @@ import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.Pregen;
+import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
 import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
@@ -86,6 +87,6 @@ public class DynamicDimensionWorker implements ConstructionWorker {
     }
 
     static String makeDimName(String playerName) {
-        return "private_for_" + playerName + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        return DimensionUtils.PRIVATE_DIM_PREFIX + playerName + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
     }
 }

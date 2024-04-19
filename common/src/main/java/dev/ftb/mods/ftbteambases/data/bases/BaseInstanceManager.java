@@ -9,6 +9,7 @@ import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
+import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.NetherPortalPlacement;
 import dev.ftb.mods.ftbteambases.util.RegionCoords;
@@ -235,9 +236,13 @@ public class BaseInstanceManager extends SavedData {
     }
 
     private static BaseInstanceManager load(CompoundTag tag) {
-        return CODEC.parse(NbtOps.INSTANCE, tag.getCompound("manager"))
+        BaseInstanceManager res = CODEC.parse(NbtOps.INSTANCE, tag.getCompound("manager"))
                 .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to reload base instance data: " + err))
                 .orElse(BaseInstanceManager.createNew());
+
+        PurgeManager.INSTANCE.cleanUpPurgedArchives(res);
+
+        return res;
     }
 
     public Optional<LiveBaseDetails> getBaseForPlayer(ServerPlayer player) {
@@ -281,6 +286,12 @@ public class BaseInstanceManager extends SavedData {
         return Optional.ofNullable(archivedBases.get(archiveId));
     }
 
+    public void removeArchivedBase(String archiveId) {
+        if (archivedBases.remove(archiveId) != null) {
+            setDirty();
+        }
+    }
+
     public void unarchiveBase(MinecraftServer server, ArchivedBaseDetails base) throws CommandSyntaxException {
         Team team = FTBTeamsAPI.api().getManager().getTeamForPlayerID(base.ownerId())
                 .orElseThrow(() -> TeamArgument.TEAM_NOT_FOUND.create(base.ownerId()));
@@ -296,6 +307,9 @@ public class BaseInstanceManager extends SavedData {
                 BaseInstanceManager.get(server).teleportToBaseSpawn(player, newParty.getId());
                 player.displayClientMessage(Component.translatable("ftbteambases.message.restored_yours"), false);
             }
+
+            // in case it was scheduled for purging
+            PurgeManager.INSTANCE.removePending(List.of(base));
         } else {
             String ownerName = server.getProfileCache().get(base.ownerId())
                     .map(GameProfile::getName)
