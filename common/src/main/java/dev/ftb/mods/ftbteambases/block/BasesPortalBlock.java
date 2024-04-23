@@ -1,7 +1,7 @@
 package dev.ftb.mods.ftbteambases.block;
 
-import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
+import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.net.ShowSelectionGuiMessage;
 import dev.ftb.mods.ftbteambases.registry.ModBlocks;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
@@ -13,9 +13,9 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class BasesPortalBlock extends NetherPortalBlock {
     public BasesPortalBlock() {
-        super(Properties.copy(Blocks.NETHER_PORTAL));
+        super(Properties.ofFullCopy(Blocks.NETHER_PORTAL));
     }
 
     @Override
@@ -64,7 +64,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockGetter blockGetter, BlockPos blockPos, BlockState blockState) {
+    public ItemStack getCloneItemStack(LevelReader levelReader, BlockPos blockPos, BlockState blockState) {
         return new ItemStack(ModBlocks.PORTAL_ITEM.get());
     }
 

@@ -8,6 +8,7 @@ import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -99,20 +100,19 @@ public enum PurgeManager {
         //   so it's not enough just to delete the dimension directory;
         //   the dimension must also be removed from level.dat
         // NBT structure: Data -> WorldGenSettings -> dimensions -> <dimension_ids>
-        Path worldDir = server.getWorldPath(LevelResource.LEVEL_DATA_FILE);
-        File datFile = worldDir.toFile();
+        Path levelDatFile = server.getWorldPath(LevelResource.LEVEL_DATA_FILE);
 
         try {
-            CompoundTag tag = NbtIo.readCompressed(datFile);
+            CompoundTag tag = NbtIo.readCompressed(levelDatFile, NbtAccounter.unlimitedHeap());
 
             CompoundTag tag1 = tag.getCompound("Data").getCompound("WorldGenSettings").getCompound("dimensions");
 
             ids.forEach(id -> tag1.remove(id.toString()));
 
-            File tempFile = File.createTempFile("tmp-level", ".dat", worldDir.toFile());
-            NbtIo.writeCompressed(tag, tempFile);
+            File tempFile = File.createTempFile("tmp-level", ".dat", levelDatFile.toFile());
+            NbtIo.writeCompressed(tag, tempFile.toPath());
             File backupFile = new File(server.getServerDirectory(), "level.dat_old");
-            Util.safeReplaceFile(datFile, tempFile, backupFile);
+            Util.safeReplaceFile(levelDatFile, tempFile.toPath(), backupFile.toPath());
 
             FTBTeamBases.LOGGER.info("removed {} purged base dimension(s) from level.dat", ids.size());
         } catch (IOException e) {

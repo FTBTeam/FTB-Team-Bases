@@ -26,6 +26,9 @@ public class BaseSelectionScreen extends Screen {
     private Button createButton;
     private AbstractTexture fallbackIcon;
 
+    static final int UPPER_HEIGHT = 80;
+    static final int LOWER_HEIGHT = 40;
+
     public BaseSelectionScreen(Consumer<ResourceLocation> onSelect) {
         super(Component.empty());
 
@@ -36,7 +39,7 @@ public class BaseSelectionScreen extends Screen {
     protected void init() {
         super.init();
 
-        startList = new StartList(minecraft, width, height, 80, height - 40);
+        startList = new StartList(minecraft, width, height - UPPER_HEIGHT - LOWER_HEIGHT, UPPER_HEIGHT);
         searchBox = new EditBox(font, width / 2 - 160 / 2, 40, 160, 20, Component.empty());
         searchBox.setResponder(startList::addChildren);
 
@@ -47,8 +50,8 @@ public class BaseSelectionScreen extends Screen {
                 .size(150, 20).pos(width / 2 - 20, height - 30).build());
         createButton.active = false;
 
-        addWidget(searchBox);
-        addWidget(startList);
+        addRenderableWidget(searchBox);
+        addRenderableWidget(startList);
 
         fallbackIcon = minecraft.getTextureManager().getTexture(BaseDefinition.FALLBACK_IMAGE);
     }
@@ -64,9 +67,6 @@ public class BaseSelectionScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        startList.render(graphics, mouseX, mouseY, partialTick);
-        searchBox.render(graphics, mouseX, mouseY, partialTick);
-
         super.render(graphics, mouseX, mouseY, partialTick);
 
         String value = Component.translatable("ftbteambases.gui.select_start").getString();
@@ -74,8 +74,8 @@ public class BaseSelectionScreen extends Screen {
     }
 
     private class StartList extends AbstractSelectionList<StartList.Entry> {
-        StartList(Minecraft minecraft, int width, int height, int top, int bottom) {
-            super(minecraft, width, height, top, bottom, 50); // 30 = item height
+        StartList(Minecraft minecraft, int width, int height, int top) {
+            super(minecraft, width, height, top, 50); // 50 = item height
 
             addChildren("");
         }
@@ -108,7 +108,7 @@ public class BaseSelectionScreen extends Screen {
         }
 
         @Override
-        public void updateNarration(NarrationElementOutput arg) {
+        protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
         }
 
         private class Entry extends AbstractSelectionList.Entry<Entry> {

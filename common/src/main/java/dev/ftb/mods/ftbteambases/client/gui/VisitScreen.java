@@ -19,6 +19,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+import static dev.ftb.mods.ftbteambases.client.gui.BaseSelectionScreen.LOWER_HEIGHT;
+import static dev.ftb.mods.ftbteambases.client.gui.BaseSelectionScreen.UPPER_HEIGHT;
+
 public class VisitScreen extends Screen {
     private final Map<ResourceLocation, List<OpenVisitScreenMessage.BaseData>> baseDataMap;
     private VisitList visitList;
@@ -36,21 +39,19 @@ public class VisitScreen extends Screen {
     protected void init() {
         super.init();
 
-        visitList = new VisitList(minecraft, width, height, 80, height - 40);
+        visitList = new VisitList(minecraft, width, height - UPPER_HEIGHT - LOWER_HEIGHT, UPPER_HEIGHT);
 
         searchBox = new EditBox(font, width / 2 - 160 / 2, 40, 160, 20, Component.empty());
         searchBox.setResponder(visitList::onFilterChanged);
 
         Component label = Component.translatable("ftbteambases.gui.show_archived");
-        int lw = font.width(label) + 35;
-        Checkbox checkbox = new Checkbox(width - lw, 40, lw, 20, label, showArchived) {
-            @Override
-            public void onPress() {
-                super.onPress();
-                showArchived = selected();
-                visitList.onFilterChanged(searchBox.getValue());
-            }
-        };
+        Checkbox checkbox = Checkbox.builder(label, font)
+                .pos(width - font.width(label) - 35, 40)
+                .selected(showArchived)
+                .onValueChange((widget, selected) -> {
+                    showArchived = selected;
+                    visitList.onFilterChanged(searchBox.getValue());
+                }).build();
 
         addRenderableWidget(Button.builder(CommonComponents.GUI_BACK, btn -> onClose())
                 .size(100, 20).pos(width / 2 - 130, height - 30).build());
@@ -61,15 +62,12 @@ public class VisitScreen extends Screen {
         createButton.active = false;
 
         addRenderableWidget(checkbox);
-        addWidget(searchBox);
-        addWidget(visitList);
+        addRenderableWidget(searchBox);
+        addRenderableWidget(visitList);
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        visitList.render(graphics, mouseX, mouseY, partialTick);
-        searchBox.render(graphics, mouseX, mouseY, partialTick);
-
         super.render(graphics, mouseX, mouseY, partialTick);
 
         String value = Component.translatable("ftbteambases.gui.select_dimension").getString();
@@ -87,8 +85,8 @@ public class VisitScreen extends Screen {
     }
 
     private class VisitList extends AbstractSelectionList<VisitList.Entry> {
-        public VisitList(Minecraft minecraft, int width, int height, int top, int bottom) {
-            super(minecraft, width, height, top, bottom, 45);
+        public VisitList(Minecraft minecraft, int width, int height, int top) {
+            super(minecraft, width, height, top, 45);
 
             addChildren("");
         }
@@ -127,7 +125,7 @@ public class VisitScreen extends Screen {
         }
 
         @Override
-        public void updateNarration(NarrationElementOutput narrationElementOutput) {
+        protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
         }
 
         private void onFilterChanged(String filter) {

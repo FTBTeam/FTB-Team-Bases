@@ -1,0 +1,16 @@
+{
+  "id": "ftbteambases:default_jigsaw",
+  "description": "Test Base (Jigsaw/Shared)",
+  "preview_image": "ftbteambases:textures/spawn/default.png",
+  "dev_mode": true,
+  "construction": {
+    "template_pool": "minecraft:pillager_outpost/towers",
+    "target": "minecraft:entrance",
+    "y_pos": 64,
+    "max_gen_depth": 1
+  },
+  "spawn_offset": [ 0, 0, -6 ],
+  "dimension": {
+    "private": false
+  }
+}

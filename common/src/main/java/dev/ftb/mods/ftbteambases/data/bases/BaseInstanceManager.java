@@ -114,7 +114,11 @@ public class BaseInstanceManager extends SavedData {
     public static BaseInstanceManager get(MinecraftServer server) {
         DimensionDataStorage dataStorage = Objects.requireNonNull(server.getLevel(Level.OVERWORLD)).getDataStorage();
 
-        return dataStorage.computeIfAbsent(BaseInstanceManager::load, BaseInstanceManager::createNew, SAVE_NAME);
+        return dataStorage.computeIfAbsent(factory(), SAVE_NAME);
+    }
+
+    private static SavedData.Factory<BaseInstanceManager> factory() {
+        return new SavedData.Factory<>(BaseInstanceManager::createNew, BaseInstanceManager::load, null);
     }
 
     /**
