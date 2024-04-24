@@ -7,10 +7,8 @@ import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.SingleStructure;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
-import dev.ftb.mods.ftbteambases.util.RegionCoords;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Vec3i;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,7 +17,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkStatus;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
@@ -43,9 +40,8 @@ public class SingleStructureWorker extends AbstractStructureWorker {
         StructureTemplate template = serverLevel.getStructureManager().getOrCreate(singleStructure.structureLocation());
         StructurePlaceSettings placeSettings = DimensionUtils.makePlacementSettings(template, singleStructure.includeEntities());
 
-        RegionCoords r = getRegionExtents().start();
-        BlockPos pos0 = originAtYpos(serverLevel, r.getBlockPos(new Vec3i(256, 0, 256)));
-        BlockPos templatePos = pos0.offset(-(template.getSize().getX() / 2), 0, -(template.getSize().getZ() / 2));
+        BlockPos origin = getPlacementOrigin(serverLevel, getSpawnXZ(), singleStructure.yPos());
+        BlockPos templatePos = origin.offset(-(template.getSize().getX() / 2), 0, -(template.getSize().getZ() / 2));
 
         ChunkPos cp = new ChunkPos(templatePos);
         if (serverLevel.getChunkSource().getChunk(cp.x, cp.z, ChunkStatus.FULL, true) == null) {
@@ -81,11 +77,11 @@ public class SingleStructureWorker extends AbstractStructureWorker {
         onCompleted.accept(true);
     }
 
-    private BlockPos originAtYpos(ServerLevel level, BlockPos xz) {
-        int x = xz.getX();
-        int z = xz.getZ();
-        return singleStructure.yPos()
-                .map(y -> new BlockPos(x, y, z))
-                .orElse(new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z));
-    }
+//    private BlockPos originAtYpos(ServerLevel level, XZ xz) {
+//        int x = xz.x();
+//        int z = xz.z();
+//        return singleStructure.yPos()
+//                .map(y -> new BlockPos(x, y, z))
+//                .orElse(new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z));
+//    }
 }

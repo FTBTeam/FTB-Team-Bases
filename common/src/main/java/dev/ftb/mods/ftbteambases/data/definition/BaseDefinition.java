@@ -6,18 +6,20 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.architectury.platform.Platform;
+import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.config.ClientConfig;
 import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
-import dev.ftb.mods.ftbteambases.data.construction.workers.DynamicDimensionWorker;
 import dev.ftb.mods.ftbteambases.data.construction.workers.JigsawWorker;
-import dev.ftb.mods.ftbteambases.data.construction.workers.RelocatingWorker;
+import dev.ftb.mods.ftbteambases.data.construction.workers.PrivateDimensionPregenWorker;
+import dev.ftb.mods.ftbteambases.data.construction.workers.RelocatingPregenWorker;
 import dev.ftb.mods.ftbteambases.data.construction.workers.SingleStructureWorker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ExtraCodecs;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -26,12 +28,19 @@ import static dev.ftb.mods.ftbteambases.FTBTeamBases.rl;
 
 public record BaseDefinition(ResourceLocation id, String description, String author, BlockPos spawnOffset,
                              boolean devMode, Optional<ResourceLocation> previewImage, int displayOrder,
-                             DimensionSettings dimensionSettings, Optional<JigsawParams> jigsawParams,
-                             ConstructionType constructionType) {
+                             DimensionSettings dimensionSettings, ConstructionType constructionType,
+                             XZ extents)
+{
     public static final ResourceLocation DEFAULT_PREVIEW = rl("default");
     public static final ResourceLocation FALLBACK_IMAGE = rl("textures/fallback.png");
     public static final ResourceLocation DEFAULT_DIMENSION_TYPE = rl("default");
     public static final ResourceLocation DEFAULT_STRUCTURE_SET = rl( "default");
+
+    // TODO get XZ updated in FTB Library for codec support
+    private static final Codec<XZ> XZ_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            ExtraCodecs.POSITIVE_INT.fieldOf("x").forGetter(XZ::x),
+            ExtraCodecs.POSITIVE_INT.fieldOf("z").forGetter(XZ::z)
+    ).apply(instance, XZ::of));
 
     public static final Codec<BaseDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             ResourceLocation.CODEC.fieldOf("id").forGetter(BaseDefinition::id),
@@ -42,8 +51,8 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
             ResourceLocation.CODEC.optionalFieldOf("preview_image").forGetter(BaseDefinition::previewImage),
             Codec.INT.optionalFieldOf("display_order", 0).forGetter(BaseDefinition::displayOrder),
             DimensionSettings.CODEC.fieldOf("dimension").forGetter(BaseDefinition::dimensionSettings),
-            JigsawParams.CODEC.optionalFieldOf("jigsaw").forGetter(BaseDefinition::jigsawParams),
-            ConstructionType.CODEC.fieldOf("construction").forGetter(BaseDefinition::constructionType)
+            ConstructionType.CODEC.fieldOf("construction").forGetter(BaseDefinition::constructionType),
+            XZ_CODEC.optionalFieldOf("extents", XZ.of(1,1)).forGetter(BaseDefinition::extents)
     ).apply(instance, BaseDefinition::new));
 
     public static Optional<BaseDefinition> fromJson(JsonElement element) {
@@ -55,9 +64,9 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
     public ConstructionWorker createConstructionWorker(ServerPlayer player) throws IOException {
         if (constructionType.pregen().isPresent()) {
             if (dimensionSettings.privateDimension()) {
-                return new DynamicDimensionWorker(player, this, constructionType.pregen().get());
+                return new PrivateDimensionPregenWorker(player, this, constructionType.pregen().get());
             } else {
-                return new RelocatingWorker(player, this, constructionType.pregen().get());
+                return new RelocatingPregenWorker(player, this, constructionType.pregen().get());
             }
         } else if (constructionType.jigsaw().isPresent()) {
             return new JigsawWorker(player, this, constructionType.jigsaw().get(), dimensionSettings.privateDimension());
@@ -78,6 +87,8 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
         buf.writeVarInt(displayOrder);
         dimensionSettings.toBytes(buf);
         constructionType.toBytes(buf);
+        buf.writeVarInt(extents.x());
+        buf.writeVarInt(extents.z());
     }
 
     public static BaseDefinition fromBytes(FriendlyByteBuf buf) {
@@ -90,8 +101,9 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
         int displayOrder = buf.readVarInt();
         DimensionSettings dimensionSettings = DimensionSettings.fromBytes(buf);
         ConstructionType type = ConstructionType.fromBytes(buf);
+        XZ extents = XZ.of(buf.readVarInt(), buf.readVarInt());
 
-        return new BaseDefinition(id, desc, author, spawnOffset, devMode, previewImage, displayOrder, dimensionSettings, Optional.empty(), type);
+        return new BaseDefinition(id, desc, author, spawnOffset, devMode, previewImage, displayOrder, dimensionSettings, type, extents);
     }
 
     public boolean matchesName(String filterStr) {
