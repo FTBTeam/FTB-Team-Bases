@@ -210,7 +210,7 @@ public class FTBTeamBases {
 
                 LOGGER.info("Spawned lobby structure @ {}", lobbyLoc);
             } catch (ResourceLocationException e) {
-                LOGGER.error("invalid lobby resource location: " + e.getMessage());
+                LOGGER.error("invalid lobby resource location: {}", e.getMessage());
             }
         }
     }
