@@ -1,18 +1,12 @@
 package dev.ftb.mods.ftbteambases.data.construction.workers;
 
-import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
-import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.JigsawParams;
 import dev.ftb.mods.ftbteambases.util.ProgressiveJigsawPlacer;
-import dev.ftb.mods.ftbteambases.util.RegionCoords;
-import dev.ftb.mods.ftbteambases.util.RegionExtents;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -21,15 +15,15 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public class JigsawWorker extends AbstractStructureWorker {
     private final ProgressiveJigsawPlacer placer;
-    private BooleanConsumer onCompleted;
 
     public JigsawWorker(ServerPlayer player, BaseDefinition baseDefinition, JigsawParams jigsawParams, boolean privateDimension) {
         super(player, baseDefinition, privateDimension);
 
-        RegionCoords r = getRegionExtents().start();
-        BlockPos startPos = new BlockPos(r.x() * 512 + 256, jigsawParams.yPos(), r.z() * 512 + 256);
+        ServerLevel serverLevel = getOrCreateLevel(player.getServer());
+        BlockPos origin = getPlacementOrigin(serverLevel, getSpawnXZ(), jigsawParams.yPos())
+                .offset(jigsawParams.generationOffset().orElse(BlockPos.ZERO));
 
-        placer = new ProgressiveJigsawPlacer(player.createCommandSourceStack(), jigsawParams, startPos);
+        placer = new ProgressiveJigsawPlacer(player.createCommandSourceStack(), jigsawParams, origin);
     }
 
     @Override

@@ -9,42 +9,46 @@ import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
 import dev.ftb.mods.ftbteambases.util.RegionCoords;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public abstract class AbstractStructureWorker implements ConstructionWorker {
     protected final BaseDefinition baseDefinition;
     protected final boolean privateDimension;
     private final ResourceKey<Level> dimensionKey;
-    private final RegionCoords startRegion;
     protected BooleanConsumer onCompleted;
+    private final RegionExtents extents;
 
     protected AbstractStructureWorker(ServerPlayer player, BaseDefinition baseDefinition, boolean privateDimension) {
         this.baseDefinition = baseDefinition;
         this.privateDimension = privateDimension;
 
-        if (privateDimension) {
-            String dimName = DynamicDimensionWorker.makeDimName(player.getGameProfile().getName().toLowerCase());
-            dimensionKey = ResourceKey.create(Registries.DIMENSION, FTBTeamBases.rl(dimName));
-        } else {
-            dimensionKey = ResourceKey.create(Registries.DIMENSION, baseDefinition.dimensionSettings().dimensionId()
-                    .orElse(FTBTeamBases.SHARED_DIMENSION_ID));
-        }
+        dimensionKey = privateDimension ?
+                ConstructionWorker.makePrivateDimensionKeyFor(player.getGameProfile().getName().toLowerCase()) :
+                ResourceKey.create(Registries.DIMENSION, baseDefinition.dimensionSettings().dimensionId().orElse(FTBTeamBases.SHARED_DIMENSION_ID));
 
-        MinecraftServer server = player.getServer();
-        startRegion = BaseInstanceManager.get(server).nextGenerationPos(server, baseDefinition, getDimension().location(), XZ.of(1, 1));
+        MinecraftServer server = Objects.requireNonNull(player.getServer());
+        RegionCoords startRegion = BaseInstanceManager.get(server).nextGenerationPos(server, baseDefinition, getDimension().location(), baseDefinition.extents());
+        extents = new RegionExtents(
+            startRegion,
+            startRegion.offsetBy(baseDefinition.extents().x() - 1, baseDefinition.extents().z() - 1)
+        );
     }
 
     protected final ServerLevel getOrCreateLevel(MinecraftServer server) {
-        if (privateDimension) {
-            return DynamicDimensionManager.create(server, dimensionKey, baseDefinition);
-        } else {
-            return server.getLevel(dimensionKey);
-        }
+        return privateDimension ?
+                DynamicDimensionManager.create(server, dimensionKey, baseDefinition) :
+                server.getLevel(dimensionKey);
     }
 
     @Override
@@ -59,12 +63,23 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
 
     @Override
     public RegionExtents getRegionExtents() {
-        return new RegionExtents(startRegion, startRegion);
+        return extents;
     }
 
-    @Override
-    public XZ getSpawnXZ() {
-        return XZ.of(startRegion.x() * 512 + 256, startRegion.z() * 512 + 256);
+    /**
+     * Get the blockpos where placement of the structure/jigsaw should begin.
+     *
+     * @param level the level
+     * @param xz the X/Z position where generation should happen
+     * @param yPos an option Y position; if present, use it;
+     *            if absent, use the surface height of the level at this X/Z position
+     * @return the placement origin
+     */
+    protected final BlockPos getPlacementOrigin(ServerLevel level, XZ xz, Optional<Integer> yPos) {
+        int x = xz.x();
+        int z = xz.z();
+        return yPos
+                .map(y -> new BlockPos(x, y, z))
+                .orElse(new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z));
     }
-
 }

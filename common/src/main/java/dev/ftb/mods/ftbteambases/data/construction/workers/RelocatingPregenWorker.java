@@ -27,13 +27,13 @@ import java.nio.file.Path;
  * Used when a set of pregenerated region files needs to be copied and relocated from the region template dir into an
  * existing shared dimension.
  */
-public class RelocatingWorker implements ConstructionWorker {
+public class RelocatingPregenWorker implements ConstructionWorker {
     private final RegionFileRelocator relocator;
     private final RegionExtents extents;
     private final ResourceKey<Level> dimensionKey;
     private final XZ regionOffset;
 
-    public RelocatingWorker(ServerPlayer player, BaseDefinition baseDefinition, Pregen pregen) throws IOException {
+    public RelocatingPregenWorker(ServerPlayer player, BaseDefinition baseDefinition, Pregen pregen) throws IOException {
         CommandSourceStack source = player.createCommandSourceStack();
         MinecraftServer server = source.getServer();
 

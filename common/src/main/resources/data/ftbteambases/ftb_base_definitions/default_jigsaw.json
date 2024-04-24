@@ -1,0 +1,17 @@
+{
+  "id": "ftbteambases:default_jigsaw",
+  "description": "Test Base (Jigsaw/Shared)",
+  "preview_image": "ftbteambases:textures/spawn/default.png",
+  "dev_mode": true,
+  "construction": {
+    "template_pool": "minecraft:trail_ruins/tower",
+    "target": "minecraft:road_anchor",
+    "y_pos": 64,
+    "max_gen_depth": 7,
+    "orientation": "up_north"
+  },
+  "spawn_offset": [ 0, 0, 0 ],
+  "dimension": {
+    "private": false
+  }
+}
