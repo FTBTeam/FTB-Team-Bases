@@ -8,11 +8,15 @@ import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
+import org.jetbrains.annotations.NotNull;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -48,8 +52,29 @@ public interface ConstructionWorker {
         BlockPos offset = baseDefinition.spawnOffset();
         XZ spawnXZ = getSpawnXZ().offset(offset.getX(), offset.getZ());
         destLevel.getChunk(spawnXZ.x() >> 4, spawnXZ.z() >> 4);
-        int yPos = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE_WG, spawnXZ.x(), spawnXZ.z());
-        return new BlockPos(spawnXZ.x(), yPos, spawnXZ.z()).above(offset.getY());
+        int yPos = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE, spawnXZ.x(), spawnXZ.z());
+
+        if (yPos > destLevel.getMinBuildHeight()) {
+            return new BlockPos(spawnXZ.x(), yPos, spawnXZ.z()).above(offset.getY());
+        } else {
+            return findSafeSpawn(destLevel, baseDefinition, spawnXZ);
+        }
+    }
+
+    private static @NotNull BlockPos findSafeSpawn(Level destLevel, BaseDefinition baseDefinition, XZ spawnXZ) {
+        // oops, this spot's over the void. try to find a safe spot nearby to avoid pain and suffering
+        BlockPos start = new BlockPos(spawnXZ.x() - 8, 0, spawnXZ.z() - 8);
+        for (BlockPos.MutableBlockPos pos : BlockPos.spiralAround(start, 16, Direction.EAST, Direction.SOUTH)) {
+            int y = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE, pos.getX(), pos.getZ());
+            if (y > destLevel.getMinBuildHeight()) {
+                return new BlockPos(pos.getX(), y + 1, pos.getZ());
+            }
+        }
+        // still nothing :(  create an emergency block for the player to stand on
+        BlockPos fallbackPos = new BlockPos(spawnXZ.x(), 64, spawnXZ.z());
+        FTBTeamBases.LOGGER.warn("can't find safe player spawn for base {}, creating emergency block at {}", baseDefinition.id(), fallbackPos);
+        destLevel.setBlock(fallbackPos, Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
+        return fallbackPos.above();
     }
 
     default LiveBaseDetails makeLiveBaseDetails(Level destLevel, BaseDefinition baseDefinition) {
