@@ -113,6 +113,28 @@ By default, the lobby structure NBT is `ftbteambases:lobby`, a resource location
 
 This is fine for small lobbies, but if you want a very large complex lobby, it may be advisable to do a pregenerated region instead. In this case, put your pregenerated MCA file into `ftbteambases/pregen_initial/region/`. If you do this, you must also change the `lobby_spawn` [config](#config-files) setting so that the player is spawned in the right place in the lobby on initial join.
 
+#### Custom Dimension for the Lobby
+
+By default, the lobby structure is spawned in the overworld, and new players are sent there when they first log in to a server (or create a new SSP world). It might be desirable to have a custom dimension for your lobby, e.g. if your modpack has visiting the Overworld as a later-on goal. This is supported, but a little care is needed:
+
+1. You will need a custom dimension for your lobby, and it must be a static dimension, defined via datapack. FTB Team Bases provides such a dimension: `ftbteambases:lobby`. This is a void dimension made of nothing but air, into which the lobby structure is pasted. If you want to use an alternative dimension, you must provide one via datapack. It is also possible to use the Nether or the End here, although this will take extra work to preserve game progression...
+2. The lobby dimension is defined in server config with the `lobby_dimension` setting in the `lobby` section. However, since this needs to be set _before_ the server is started (and levels are initially created), it must be defined in the mod's default config, and this default config must be provided with the modpack. Edit `defaultconfigs/ftbteambases/ftbteambases-server.snbt`, and add the following (possibly combining with any other default config settings you want to add here):
+
+```
+# Default config file that will be copied to saves/New World/serverconfig/ftbteambases-server.snbt if it doesn't exist!
+# Just copy any values you wish to override in here!
+
+{
+  lobby: {
+    lobby_dimension: "ftbteambases:lobby"
+  }
+}
+```
+
+3. Once the world is created, you should _not_ modify this config setting, or it may lead to players being teleported into the wrong dimension, and likely death by suffocation!
+
+When players first log in to the server (or create an SSP world), they will be immediately teleported to the lobby structure in the target dimension. FTB Team Bases doesn't provide a method to return to the overworld, so that will need to be arranged separately (e.g. a command block, or some modded solution).
+
 ## Creating a Base
 
 There are two ways to do this:
@@ -124,7 +146,6 @@ Note that base creation can take a few seconds, especially if there are multiple
 
 * When a base is created, a team is automatically created for the player.
 * If a team is disbanded, the base is archived, and any players in the base are sent back to the lobby.
-  * Planned: `/ftbteambases archive purge` and `/ftbteambases archive restore` commands will be added to purge or restore archived bases.
 * If a player joins an existing team, they are automatically sent to the team's base. If they leave the team, they are sent back to the lobby.
 
 ## Commands
@@ -137,8 +158,8 @@ Note that base creation can take a few seconds, especially if there are multiple
 * `/ftbteambases create <base-definition>` - create a base - see [above](#creating-a-base)
 * `/ftbteambases list` - list all known team bases. 
   * The **[Show]** and **[Visit]** "buttons" in the resulting text can be clicked to show base details, or teleport to the base (admin privileges required)
-* `/ftbteambases show <base-id>` - show base details. `<base-id>` is in fact an existing FTB Team shortname
-* `/ftbteambases visit <base-id>` - teleport to a base spawn. `<base-id>` is in fact an existing FTB Team shortname
+* `/ftbteambases show <base-id>` - show base details. `<base-id>` is in fact an existing FTB Teams shortname
+* `/ftbteambases visit <base-id>` - teleport to a base spawn. `<base-id>` is in fact an existing FTB Teams shortname
 * `/ftbteambases visit` - open a GUI showing all live bases and optionally all archived bases with some performance info, and the option to visit
 * `/ftbteambases nether-visit` - go to the Nether at the point a Nether portal for this team would take you
 * `/ftbteambases archive list` - show all archived bases.
