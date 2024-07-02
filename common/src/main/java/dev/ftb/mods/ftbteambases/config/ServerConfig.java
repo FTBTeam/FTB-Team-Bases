@@ -4,8 +4,15 @@ import dev.ftb.mods.ftblibrary.config.NameMap;
 import dev.ftb.mods.ftblibrary.snbt.config.*;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.worldgen.chunkgen.ChunkGenerators;
+import net.minecraft.ResourceLocationException;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+
+import java.util.Optional;
 
 public interface ServerConfig {
     NameMap<GameType> GAME_TYPE_NAME_MAP = NameMap.of(GameType.ADVENTURE, GameType.values()).create();
@@ -26,12 +33,14 @@ public interface ServerConfig {
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
             .comment("Resource location of the structure NBT for the overworld lobby");
     IntValue LOBBY_Y_POS = LOBBY.addInt("lobby_y_pos", 0, -64, 256)
-            .comment("Y position at which the lobby structure will be pasted into the overworld. " +
+            .comment("Y position at which the lobby structure will be pasted into the level. " +
                     "Note: too near world min/max build height may result in parts of the structure being cut off - beware.");
     EnumValue<GameType> LOBBY_GAME_MODE = LOBBY.addEnum("lobby_game_mode", GAME_TYPE_NAME_MAP)
             .comment("The default game mode given to players when in the lobby. Note that admin-mode players are free to change this.");
     IntArrayValue LOBBY_SPAWN = LOBBY.addIntArray("lobby_spawn_pos", new int[]{ 0, 0, 0})
             .comment("Position at which new players spawn. Only used if the lobby structure comes from a pregenerated region!");
+    StringValue LOBBY_DIMENSION = LOBBY.addString("lobby_dimension", "minecraft:overworld")
+            .comment("Dimension ID of the level in which the lobby is created. This *must* be a static pre-existing dimension, not a dynamically created one! New players will be automatically teleported to this dimension the first time they connect to the server. This setting should be defined in default config so the server has it before any levels are created - do NOT modify this on existing worlds!");
 
     SNBTConfig WORLDGEN = CONFIG.addGroup("worldgen");
     EnumValue<ChunkGenerators> CHUNK_GENERATOR = WORLDGEN.addEnum("chunk_generator", ChunkGenerators.NAME_MAP)
@@ -51,8 +60,32 @@ public interface ServerConfig {
     BooleanValue TEAM_SPECIFIC_NETHER_ENTRY_POINT = NETHER.addBoolean("team_specific_nether_entry_point", true)
             .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
 
-    static ResourceLocation lobbyLocation() {
-        return new ResourceLocation(LOBBY_STRUCTURE_LOCATION.get());
+    static Optional<ResourceLocation> lobbyLocation() {
+        try {
+            return Optional.of(new ResourceLocation(LOBBY_STRUCTURE_LOCATION.get()));
+        } catch (ResourceLocationException ignored) {
+            FTBTeamBases.LOGGER.error("invalid lobby resource location: {}", LOBBY_STRUCTURE_LOCATION.get());
+            return Optional.empty();
+        }
+    }
+
+    static Optional<ResourceKey<Level>> lobbyDimension() {
+        try {
+            return Optional.of(ResourceKey.create(Registries.DIMENSION, new ResourceLocation(LOBBY_DIMENSION.get())));
+        } catch (ResourceLocationException ignored) {
+            FTBTeamBases.LOGGER.error("invalid dimension ID in config 'lobby_dimension': {}", ServerConfig.LOBBY_DIMENSION.get());
+            return Optional.empty();
+        }
+    }
+
+    static Optional<BlockPos> lobbyPos() {
+        int[] pos = ServerConfig.LOBBY_SPAWN.get();
+        if (pos.length == 3) {
+            return Optional.of(new BlockPos(pos[0], pos[1], pos[2]));
+        } else {
+            FTBTeamBases.LOGGER.error("invalid lobby spawn pos! expected 3 integers, got {}", pos.length);
+            return Optional.empty();
+        }
     }
 
     enum FeatureGeneration {

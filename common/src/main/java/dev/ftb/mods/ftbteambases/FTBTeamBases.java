@@ -4,10 +4,10 @@ import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.*;
 import dev.architectury.registry.ReloadListenerRegistry;
 import dev.ftb.mods.ftblibrary.snbt.config.ConfigUtil;
-import dev.ftb.mods.ftbteambases.command.*;
+import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
-import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
+import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.data.construction.RelocatorTracker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
@@ -16,10 +16,12 @@ import dev.ftb.mods.ftbteambases.net.SyncBaseTemplatesMessage;
 import dev.ftb.mods.ftbteambases.net.VoidTeamDimensionMessage;
 import dev.ftb.mods.ftbteambases.registry.ModBlocks;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
-import dev.ftb.mods.ftbteambases.util.*;
+import dev.ftb.mods.ftbteambases.util.DimensionUtils;
+import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
+import dev.ftb.mods.ftbteambases.util.InitialPregen;
+import dev.ftb.mods.ftbteambases.util.RegionFileRelocator;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.event.TeamEvent;
-import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -100,17 +102,22 @@ public class FTBTeamBases {
     }
 
     private static void serverStarted(MinecraftServer server) {
-        ServerLevel level = server.getLevel(OVERWORLD);
-        if (level == null) {
-            LOGGER.warn("Missed spawn reset event due to overworld being null?!");
-            return;
-        }
+        ServerConfig.lobbyDimension().ifPresent(dim -> {
+            // only override overworld default spawn pos if the lobby is actually in the overworld
+            if (dim.equals(OVERWORLD)) {
+                ServerLevel level = server.getLevel(OVERWORLD);
+                if (level == null) {
+                    LOGGER.error("Missed spawn reset event due to overworld being null?!");
+                    return;
+                }
 
-        BaseInstanceManager mgr = BaseInstanceManager.get(server);
-        if (mgr.isLobbyCreated() && !level.getSharedSpawnPos().equals(mgr.getLobbySpawnPos())) {
-            level.setDefaultSpawnPos(mgr.getLobbySpawnPos(), 180F);
-            LOGGER.info("Updating overworld spawn pos to the lobby location: " + mgr.getLobbySpawnPos());
-        }
+                BaseInstanceManager mgr = BaseInstanceManager.get(server);
+                if (mgr.isLobbyCreated() && !level.getSharedSpawnPos().equals(mgr.getLobbySpawnPos())) {
+                    level.setDefaultSpawnPos(mgr.getLobbySpawnPos(), 180F);
+                    LOGGER.info("Updating overworld spawn pos to the lobby location: {}", mgr.getLobbySpawnPos());
+                }
+            }
+        });
     }
 
     private static void serverStopping(MinecraftServer server) {
@@ -119,10 +126,16 @@ public class FTBTeamBases {
 
     private static void onLevelLoad(ServerLevel serverLevel) {
         if (serverLevel.dimension() == OVERWORLD) {
-            if (!InitialPregen.maybeDoInitialPregen(serverLevel.getServer())) {
-                handleLobbySetup(serverLevel);
+            if (InitialPregen.maybeDoInitialPregen(serverLevel.getServer())) {
+                return;
             }
         }
+
+        ServerConfig.lobbyDimension().ifPresent(rl -> {
+            if (serverLevel.dimension().equals(rl)) {
+                handleLobbySetup(serverLevel);
+            }
+        });
     }
 
     private static void playerEnterServer(ServerPlayer player) {
@@ -131,23 +144,35 @@ public class FTBTeamBases {
 
     private static EventResult playerJoinLevel(Entity entity, Level level) {
         if (entity instanceof ServerPlayer player && level instanceof ServerLevel serverLevel) {
-            if (serverLevel.dimension().equals(OVERWORLD) && player.getRespawnDimension().equals(OVERWORLD)) {
-                // Assume this is their first time joining the world; otherwise their respawn dimension would be their own dimension
-                // Send them to the lobby, and set their respawn position there
+            if (isFirstTimeConnecting(player, serverLevel)) {
+                ServerLevel destLevel = ServerConfig.lobbyDimension()
+                        .map(dim -> serverLevel.getServer().getLevel(dim))
+                        .orElse(serverLevel);
+
+                // Send new players to the lobby, and set their respawn position there
                 BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
                 if (player.getRespawnPosition() == null || !player.getRespawnPosition().equals(lobbySpawnPos)) {
-                    player.setRespawnPosition(serverLevel.dimension(), lobbySpawnPos, -180, true, false);
-                    player.teleportTo(serverLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(), -180F, -10F);
+                    player.setRespawnPosition(destLevel.dimension(), lobbySpawnPos, -180, true, false);
+                    player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(), -180F, -10F);
                 }
+                BaseInstanceManager.get().addKnownPlayer(player);
             }
 
-            if (DimensionUtils.isVoidChunkGen(serverLevel.getChunkSource().getGenerator())) {
-                VoidTeamDimensionMessage.syncTo(player);
+            if (player.level() instanceof ServerLevel s) {  // should always be the case
+                if (DimensionUtils.isVoidChunkGen(s.getChunkSource().getGenerator())) {
+                    VoidTeamDimensionMessage.syncTo(player);
+                }
+                switchGameMode(player, s.dimension());
             }
 
-            switchGameMode(player, player.level().dimension());
         }
         return EventResult.pass();
+    }
+
+    private static boolean isFirstTimeConnecting(ServerPlayer player, ServerLevel level) {
+        return level.dimension().equals(OVERWORLD)
+                && player.getRespawnDimension().equals(OVERWORLD)
+                && !BaseInstanceManager.get().isPlayerKnown(player);
     }
 
     private static void playerChangedDimension(ServerPlayer player, ResourceKey<Level> oldLevel, ResourceKey<Level> newLevel) {
@@ -191,27 +216,23 @@ public class FTBTeamBases {
     private static void handleLobbySetup(ServerLevel serverLevel) {
         BaseInstanceManager mgr = BaseInstanceManager.get(serverLevel.getServer());
         if (!mgr.isLobbyCreated()) {
-            try {
-                ResourceLocation lobbyLocation = ServerConfig.lobbyLocation();
-
-                // paste the lobby structure into the overworld
+            ServerConfig.lobbyLocation().ifPresent(lobbyLocation -> {
+                // paste the lobby structure into the lobby level (typically the overworld, but can be changed in config)
                 StructureTemplate lobby = serverLevel.getStructureManager().getOrCreate(lobbyLocation);
                 StructurePlaceSettings placeSettings = DimensionUtils.makePlacementSettings(lobby);
                 BlockPos spawnPos = DimensionUtils.locateSpawn(lobby).orElse(BlockPos.ZERO);
-                BlockPos lobbyLoc = BlockPos.ZERO.offset(-(lobby.getSize().getX() / 2), ServerConfig.LOBBY_Y_POS.get(), -(lobby.getSize().getZ() / 2));
-                BlockPos playerSpawn = spawnPos.offset(lobbyLoc.getX(), lobbyLoc.getY(), lobbyLoc.getZ());
+                BlockPos lobbyPos = BlockPos.ZERO.offset(-(lobby.getSize().getX() / 2), ServerConfig.LOBBY_Y_POS.get(), -(lobby.getSize().getZ() / 2));
+                BlockPos playerSpawn = spawnPos.offset(lobbyPos.getX(), lobbyPos.getY(), lobbyPos.getZ());
 
-                lobby.placeInWorld(serverLevel, lobbyLoc, lobbyLoc, placeSettings, serverLevel.random, Block.UPDATE_ALL);
+                lobby.placeInWorld(serverLevel, lobbyPos, lobbyPos, placeSettings, serverLevel.random, Block.UPDATE_ALL);
 
                 mgr.setLobbySpawnPos(playerSpawn);
                 mgr.setLobbyCreated(true);
 
                 serverLevel.removeBlock(playerSpawn, false);
 
-                LOGGER.info("Spawned lobby structure @ {}", lobbyLoc);
-            } catch (ResourceLocationException e) {
-                LOGGER.error("invalid lobby resource location: " + e.getMessage());
-            }
+                LOGGER.info("Spawned lobby structure @ {} / {}", serverLevel.dimension().location(), lobbyPos);
+            });
         }
     }
 

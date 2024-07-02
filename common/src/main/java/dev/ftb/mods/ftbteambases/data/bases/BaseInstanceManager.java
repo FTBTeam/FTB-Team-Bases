@@ -8,6 +8,7 @@ import dev.architectury.utils.GameInstance;
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.command.CommandUtils;
+import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
@@ -62,6 +63,8 @@ public class BaseInstanceManager extends SavedData {
             = Codec.unboundedMap(Codec.STRING, ArchivedBaseDetails.CODEC).xmap(HashMap::new, Map::copyOf);
     private static final Codec<Map<UUID,BlockPos>> NETHER_PORTAL_POS_CODEC
             = Codec.unboundedMap(UUIDUtil.STRING_CODEC, BlockPos.CODEC).xmap(HashMap::new, Map::copyOf);
+    private static final Codec<Set<UUID>> KNOWN_PLAYERS_CODEC
+            = UUIDUtil.CODEC.listOf().xmap(HashSet::new, List::copyOf);
 
     private static final Codec<BaseInstanceManager> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             LIVE_BASES_CODEC.fieldOf("bases").forGetter(mgr -> mgr.liveBases),
@@ -71,7 +74,8 @@ public class BaseInstanceManager extends SavedData {
             Codec.INT.fieldOf("next_archive_id").forGetter(mgr -> mgr.nextArchiveId),
             Codec.BOOL.fieldOf("is_lobby_created").forGetter(mgr -> mgr.isLobbyCreated),
             BlockPos.CODEC.fieldOf("lobby_spawn_pos").forGetter(mgr -> mgr.lobbySpawnPos),
-            NETHER_PORTAL_POS_CODEC.fieldOf("nether_portal_pos").forGetter(mgr -> mgr.playerNetherPortalLocs)
+            NETHER_PORTAL_POS_CODEC.fieldOf("nether_portal_pos").forGetter(mgr -> mgr.playerNetherPortalLocs),
+            KNOWN_PLAYERS_CODEC.fieldOf("known_players").forGetter(mgr -> mgr.knownPlayers)
     ).apply(inst, BaseInstanceManager::new));
 
     // maps team UUID to live base details
@@ -84,6 +88,8 @@ public class BaseInstanceManager extends SavedData {
     private final Map<ResourceLocation, Integer> storedZoffset;
     // stores player nether portal return positions
     private final Map<UUID,BlockPos> playerNetherPortalLocs;
+    // stores uuids of all players who have connected to this server
+    private final Set<UUID> knownPlayers;
 
     private boolean isLobbyCreated;
     private BlockPos lobbySpawnPos;
@@ -91,7 +97,8 @@ public class BaseInstanceManager extends SavedData {
 
     private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos,
                                 Map<ResourceLocation, Integer> zOffsets, Map<String, ArchivedBaseDetails> archivedBases,
-                                int nextArchiveId, boolean isLobbyCreated, BlockPos lobbySpawnPos, Map<UUID,BlockPos> netherPortalPos) {
+                                int nextArchiveId, boolean isLobbyCreated, BlockPos lobbySpawnPos,
+                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers) {
         this.liveBases = liveBases;
         this.storedGenPos = genPos;
         this.storedZoffset = zOffsets;
@@ -100,11 +107,12 @@ public class BaseInstanceManager extends SavedData {
         this.isLobbyCreated = isLobbyCreated;
         this.lobbySpawnPos = lobbySpawnPos;
         this.playerNetherPortalLocs = netherPortalPos;
+        this.knownPlayers = knownPlayers;
     }
 
     private static BaseInstanceManager createNew() {
         return new BaseInstanceManager(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                0, false, BlockPos.ZERO, new HashMap<>());
+                0, false, BlockPos.ZERO, new HashMap<>(), new HashSet<>());
     }
 
     public static BaseInstanceManager get() {
@@ -235,13 +243,13 @@ public class BaseInstanceManager extends SavedData {
     public CompoundTag save(CompoundTag compoundTag) {
         return Util.make(new CompoundTag(), tag ->
                 tag.put("manager", CODEC.encodeStart(NbtOps.INSTANCE, this)
-                        .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to serialize base instance data: " + err))
+                        .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to serialize base instance data: {}", err))
                         .orElse(new CompoundTag())));
     }
 
     private static BaseInstanceManager load(CompoundTag tag) {
         BaseInstanceManager res = CODEC.parse(NbtOps.INSTANCE, tag.getCompound("manager"))
-                .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to reload base instance data: " + err))
+                .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to deserialize base instance data: {}", err))
                 .orElse(BaseInstanceManager.createNew());
 
         PurgeManager.INSTANCE.cleanUpPurgedArchives(res);
@@ -259,7 +267,8 @@ public class BaseInstanceManager extends SavedData {
     }
 
     public boolean teleportToLobby(ServerPlayer serverPlayer) {
-        return DimensionUtils.teleport(serverPlayer, ServerLevel.OVERWORLD, lobbySpawnPos);
+        ResourceKey<Level> destLevel = ServerConfig.lobbyDimension().orElse(Level.OVERWORLD);
+        return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos);
     }
 
     public void deleteAndArchive(MinecraftServer server, Team team) {
@@ -366,5 +375,15 @@ public class BaseInstanceManager extends SavedData {
 
     public Optional<BlockPos> getPlayerNetherPortalLoc(ServerPlayer player) {
         return Optional.ofNullable(playerNetherPortalLocs.get(player.getUUID()));
+    }
+
+    public void addKnownPlayer(ServerPlayer player) {
+        if (knownPlayers.add(player.getUUID())) {
+            setDirty();
+        }
+    }
+
+    public boolean isPlayerKnown(ServerPlayer player) {
+        return knownPlayers.contains(player.getUUID());
     }
 }
