@@ -143,22 +143,20 @@ public class FTBTeamBases {
     }
 
     private static EventResult playerJoinLevel(Entity entity, Level level) {
+        // Note: at this point, new players are already moved to the lobby dimension if necessary, by PlayerListMixin
+        //   but their spawn position is not yet updated
         if (entity instanceof ServerPlayer player && level instanceof ServerLevel serverLevel) {
-            if (isFirstTimeConnecting(player, serverLevel)) {
-                ServerLevel destLevel = ServerConfig.lobbyDimension()
-                        .map(dim -> serverLevel.getServer().getLevel(dim))
-                        .orElse(serverLevel);
-
+            if (!BaseInstanceManager.get().isPlayerKnown(player)) {
                 // Send new players to the lobby, and set their respawn position there
                 BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
                 if (player.getRespawnPosition() == null || !player.getRespawnPosition().equals(lobbySpawnPos)) {
-                    player.setRespawnPosition(destLevel.dimension(), lobbySpawnPos, -180, true, false);
-                    player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(), -180F, -10F);
+                    player.setRespawnPosition(serverLevel.dimension(), lobbySpawnPos, -180, true, false);
+                    player.teleportTo(serverLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(), -180F, -10F);
                 }
                 BaseInstanceManager.get().addKnownPlayer(player);
             }
 
-            if (player.level() instanceof ServerLevel s) {  // should always be the case
+            if (player.level() instanceof ServerLevel s) {  // should always be the case!
                 if (DimensionUtils.isVoidChunkGen(s.getChunkSource().getGenerator())) {
                     VoidTeamDimensionMessage.syncTo(player);
                 }
@@ -169,8 +167,19 @@ public class FTBTeamBases {
         return EventResult.pass();
     }
 
+    public static ResourceKey<Level> getInitialPlayerDimension(ServerPlayer player, ResourceKey<Level> resourceKey) {
+        // Called by PlayerListMixin to get the initial dimension for new players
+        // This is better than teleporting the player on login, which can cause problems with other mods
+        //   which listen for teleport events
+        ServerLevel level = player.server.getLevel(resourceKey);
+        return isFirstTimeConnecting(player, level) ?
+                ServerConfig.lobbyDimension().orElse(OVERWORLD) :
+                resourceKey;
+    }
+
     private static boolean isFirstTimeConnecting(ServerPlayer player, ServerLevel level) {
-        return level.dimension().equals(OVERWORLD)
+        return level != null
+                && level.dimension().equals(OVERWORLD)
                 && player.getRespawnDimension().equals(OVERWORLD)
                 && !BaseInstanceManager.get().isPlayerKnown(player);
     }

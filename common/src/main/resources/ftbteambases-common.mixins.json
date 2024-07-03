@@ -12,6 +12,7 @@
     "EntityAccess",
     "LevelAccess",
     "PersistentEntitySectionManagerAccess",
+    "PlayerListMixin",
     "ServerLevelAccess",
     "ServerPlayerAccess",
     "ServerPlayerMixin"
