@@ -3,6 +3,7 @@ package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.architectury.utils.GameInstance;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
@@ -13,6 +14,8 @@ import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.*;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
@@ -22,6 +25,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Basically the vanilla NoiseBasedChunkGenerator, with an optional initial start structure.  Can be configured to use
@@ -45,6 +49,9 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
             ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME,
                     new ResourceLocation(ServerConfig.SINGLE_BIOME_ID.get()));
             biomeSource = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey));
+        } else if (!ServerConfig.COPY_BIOME_SOURCE_FROM_DIMENSION.get().isEmpty()) {
+            biomeSource = getServerLevel(ServerConfig.COPY_BIOME_SOURCE_FROM_DIMENSION.get())
+                    .getChunkSource().getGenerator().getBiomeSource();
         } else {
             Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
                     .getOrThrow(getBiomeSourceKey());
@@ -66,12 +73,28 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         return gen;
     }
 
+    private static ServerLevel getServerLevel(String dimension) {
+        MinecraftServer server = Objects.requireNonNull(GameInstance.getServer());
+        try {
+            ResourceLocation dimId = new ResourceLocation(dimension);
+            ServerLevel level = server.getLevel(ResourceKey.create(Registries.DIMENSION, dimId));
+            if (level == null) {
+                FTBTeamBases.LOGGER.error("invalid 'copy_biome_source_from_dimension' value '{}' (no such dimension), falling back to overworld", dimId);
+                level = Objects.requireNonNull(server.getLevel(ServerLevel.OVERWORLD));
+            }
+            return level;
+        } catch (ResourceLocationException ex) {
+            FTBTeamBases.LOGGER.error("invalid 'copy_biome_source_from_dimension' value '{}' (bad resource location), falling back to overworld", dimension);
+            return Objects.requireNonNull(server.getLevel(ServerLevel.OVERWORLD));
+        }
+    }
+
     private static ResourceKey<MultiNoiseBiomeSourceParameterList> getBiomeSourceKey() {
         String configVal = ServerConfig.CUSTOM_BIOME_PARAM_LIST.get();
         try {
             return ResourceKey.create(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST, new ResourceLocation(configVal));
         } catch (ResourceLocationException ex) {
-            FTBTeamBases.LOGGER.warn("invalid 'custom_biome_param_list' setting {}, falling back to minecraft:overworld", configVal);
+            FTBTeamBases.LOGGER.warn("invalid 'custom_biome_param_list' value '{}', falling back to overworld", configVal);
             return MultiNoiseBiomeSourceParameterLists.OVERWORLD;
         }
     }

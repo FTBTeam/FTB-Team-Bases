@@ -47,8 +47,10 @@ public interface ServerConfig {
             .comment("The chunk generator to use. SIMPLE_VOID (void dim, one biome), MULTI_BIOME_VOID (void dim, overworld-like biome distribution) and CUSTOM (full worldgen, customisable biome source & noise settings)");
     StringValue SINGLE_BIOME_ID = WORLDGEN.addString("single_biome_id", "")
             .comment("Only used by the CUSTOM and SIMPLE_VOID generators; if non-empty (e.g. 'minecraft:the_void'), the dimension will generate with only this biome. If empty, CUSTOM generator will use 'custom_biome_param_list` to get the biomes, and SIMPLE_VOID will use 'minecraft:the_void'");
+    StringValue COPY_BIOME_SOURCE_FROM_DIMENSION = WORLDGEN.addString("copy_biome_source_from_dimension", "")
+            .comment("Only used by the CUSTOM generator; if non-empty, this is the dimension ID of an existing static dimension from which the chunk generator settings will be copied when creating dynamic dimensions. If empty, CUSTOM generator will use 'custom_biome_param_list` to get the biomes.");
     StringValue CUSTOM_BIOME_PARAM_LIST = WORLDGEN.addString("custom_biome_param_list", "minecraft:overworld")
-            .comment("Only used by the CUSTOM generator, and when 'single_biome_id' is empty; this is the ID of a custom biome source parameter list to select which biomes will be used. Vanilla provides 'minecraft:overworld' and 'minecraft:nether' param lists; any alternative parameter list you wish to use must be provided via datapack.");
+            .comment("Only used by the CUSTOM generator, and when 'single_biome_id' and 'copy_biome_source_from_dimension' are both empty; this can be either 'minecraft:overworld' or 'minecraft:nether' - no other values are acceptable (presets are hardcoded by vanilla)");
     EnumValue<FeatureGeneration> FEATURE_GEN = WORLDGEN.addEnum("feature_gen", FeatureGeneration.NAME_MAP)
             .comment("DEFAULT: generate features in non-void worlds, don't generate in void worlds; NEVER: never generate; ALWAYS: always generate");
     StringValue NOISE_SETTINGS = WORLDGEN.addString("noise_settings", "minecraft:overworld")
