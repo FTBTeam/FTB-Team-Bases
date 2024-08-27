@@ -8,6 +8,7 @@ import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionProvider;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
+import net.minecraft.ResourceLocationException;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -46,7 +47,7 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
             biomeSource = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey));
         } else {
             Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
-                    .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD);
+                    .getOrThrow(getBiomeSourceKey());
             biomeSource = MultiNoiseBiomeSource.createFromPreset(preset);
         }
 
@@ -63,6 +64,16 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         }
 
         return gen;
+    }
+
+    private static ResourceKey<MultiNoiseBiomeSourceParameterList> getBiomeSourceKey() {
+        String configVal = ServerConfig.CUSTOM_BIOME_PARAM_LIST.get();
+        try {
+            return ResourceKey.create(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST, new ResourceLocation(configVal));
+        } catch (ResourceLocationException ex) {
+            FTBTeamBases.LOGGER.warn("invalid 'custom_biome_param_list' setting {}, falling back to minecraft:overworld", configVal);
+            return MultiNoiseBiomeSourceParameterLists.OVERWORLD;
+        }
     }
 
     private CustomChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings, ResourceLocation baseTemplateId) {
