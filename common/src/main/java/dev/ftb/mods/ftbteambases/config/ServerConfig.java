@@ -46,15 +46,15 @@ public interface ServerConfig {
     EnumValue<ChunkGenerators> CHUNK_GENERATOR = WORLDGEN.addEnum("chunk_generator", ChunkGenerators.NAME_MAP)
             .comment("The chunk generator to use. SIMPLE_VOID (void dim, one biome), MULTI_BIOME_VOID (void dim, overworld-like biome distribution) and CUSTOM (full worldgen, customisable biome source & noise settings)");
     StringValue SINGLE_BIOME_ID = WORLDGEN.addString("single_biome_id", "")
-            .comment("Only used by the CUSTOM and SIMPLE_VOID generators; if non-empty (e.g. 'minecraft:the_void'), the dimension will generate with only this biome. If empty, CUSTOM generator will use 'custom_biome_param_list` to get the biomes, and SIMPLE_VOID will use 'minecraft:the_void'");
-    StringValue COPY_BIOME_SOURCE_FROM_DIMENSION = WORLDGEN.addString("copy_biome_source_from_dimension", "")
+            .comment("Only used by the CUSTOM and SIMPLE_VOID generators; if non-empty (e.g. 'minecraft:the_void'), the dimension will generate with only this biome. If empty, CUSTOM generator will use 'copy_generator_from_dimension' or 'custom_biome_param_list` to get the biome(s), and SIMPLE_VOID will use 'minecraft:the_void'");
+    StringValue COPY_GENERATOR_FROM_DIMENSION = WORLDGEN.addString("copy_generator_from_dimension", "")
             .comment("Only used by the CUSTOM generator; if non-empty, this is the dimension ID of an existing static dimension from which the chunk generator settings will be copied when creating dynamic dimensions. If empty, CUSTOM generator will use 'custom_biome_param_list` to get the biomes.");
     StringValue CUSTOM_BIOME_PARAM_LIST = WORLDGEN.addString("custom_biome_param_list", "minecraft:overworld")
-            .comment("Only used by the CUSTOM generator, and when 'single_biome_id' and 'copy_biome_source_from_dimension' are both empty; this can be either 'minecraft:overworld' or 'minecraft:nether' - no other values are acceptable (presets are hardcoded by vanilla)");
+            .comment("Only used by the CUSTOM generator, and when 'single_biome_id' and 'copy_generator_from_dimension' are both empty; this can be either 'minecraft:overworld' or 'minecraft:nether' - no other values are acceptable (presets are hardcoded by vanilla)");
     EnumValue<FeatureGeneration> FEATURE_GEN = WORLDGEN.addEnum("feature_gen", FeatureGeneration.NAME_MAP)
             .comment("DEFAULT: generate features in non-void worlds, don't generate in void worlds; NEVER: never generate; ALWAYS: always generate");
     StringValue NOISE_SETTINGS = WORLDGEN.addString("noise_settings", "minecraft:overworld")
-            .comment("Only used by the CUSTOM generator; resource location for the noise settings to use.");
+            .comment("Only used by the CUSTOM generator when not using 'copy_generator_from_dimension'; resource location for the noise settings to use.");
     BooleanValue ENTITIES_IN_START_STRUCTURE = WORLDGEN.addBoolean("entities_in_start_structure", true)
             .comment("If true, then any entities saved in the starting structure NBT will be included when the structure is generated");
 

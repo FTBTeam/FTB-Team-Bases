@@ -12,6 +12,9 @@ import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -42,28 +45,19 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
 
     private final ResourceLocation baseTemplateId;
 
-    public static CustomChunkGenerator create(RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
+    public static ChunkGenerator create(RegistryAccess registryAccess, ResourceLocation baseTemplateId) {
         Registry<Biome> biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
-        BiomeSource biomeSource;
+        ChunkGenerator gen;
         if (!ServerConfig.SINGLE_BIOME_ID.get().isEmpty()) {
-            ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME,
-                    new ResourceLocation(ServerConfig.SINGLE_BIOME_ID.get()));
-            biomeSource = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey));
-        } else if (!ServerConfig.COPY_BIOME_SOURCE_FROM_DIMENSION.get().isEmpty()) {
-            biomeSource = getServerLevel(ServerConfig.COPY_BIOME_SOURCE_FROM_DIMENSION.get())
-                    .getChunkSource().getGenerator().getBiomeSource();
+            ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME, new ResourceLocation(ServerConfig.SINGLE_BIOME_ID.get()));
+            gen = makeCustomGen(registryAccess, new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey)), baseTemplateId);
+        } else if (!ServerConfig.COPY_GENERATOR_FROM_DIMENSION.get().isEmpty()) {
+            gen = copyGeneratorFromLevel(registryAccess, ServerConfig.COPY_GENERATOR_FROM_DIMENSION.get());
         } else {
             Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
                     .getOrThrow(getBiomeSourceKey());
-            biomeSource = MultiNoiseBiomeSource.createFromPreset(preset);
+            gen = makeCustomGen(registryAccess, MultiNoiseBiomeSource.createFromPreset(preset), baseTemplateId);
         }
-
-        ResourceKey<NoiseGeneratorSettings> noiseSettingsKey = ResourceKey.create(Registries.NOISE_SETTINGS,
-                new ResourceLocation(ServerConfig.NOISE_SETTINGS.get()));
-        Holder<NoiseGeneratorSettings> noiseSettings = registryAccess.registryOrThrow(Registries.NOISE_SETTINGS)
-                .getHolderOrThrow(noiseSettingsKey);
-
-        CustomChunkGenerator gen = new CustomChunkGenerator(biomeSource, noiseSettings, prebuiltStructureId);
 
         if (!ServerConfig.FEATURE_GEN.get().shouldGenerate(false)) {
             //noinspection ConstantConditions
@@ -71,6 +65,22 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         }
 
         return gen;
+    }
+
+    private static CustomChunkGenerator makeCustomGen(RegistryAccess registryAccess, BiomeSource biomeSource, ResourceLocation baseTemplateId) {
+        ResourceKey<NoiseGeneratorSettings> noiseSettingsKey = ResourceKey.create(Registries.NOISE_SETTINGS,
+                new ResourceLocation(ServerConfig.NOISE_SETTINGS.get()));
+        Holder<NoiseGeneratorSettings> noiseSettings = registryAccess.registryOrThrow(Registries.NOISE_SETTINGS)
+                .getHolderOrThrow(noiseSettingsKey);
+
+        return new CustomChunkGenerator(biomeSource, noiseSettings, baseTemplateId);
+    }
+
+    private static ChunkGenerator copyGeneratorFromLevel(RegistryAccess registryAccess, String dimStr) {
+        ChunkGenerator gen0 = getServerLevel(dimStr).getChunkSource().getGenerator();
+        RegistryOps<Tag> ops = RegistryOps.create(NbtOps.INSTANCE, registryAccess);
+        Tag tag = ChunkGenerator.CODEC.encodeStart(ops, gen0).result().orElseThrow();
+        return ChunkGenerator.CODEC.parse(ops, tag).result().orElseThrow();
     }
 
     private static ServerLevel getServerLevel(String dimension) {
