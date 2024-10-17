@@ -1,5 +1,7 @@
 package dev.ftb.mods.ftbteambases.client.gui;
 
+import dev.architectury.networking.NetworkManager;
+import dev.ftb.mods.ftblibrary.util.NetworkHelper;
 import dev.ftb.mods.ftbteambases.net.OpenVisitScreenMessage;
 import dev.ftb.mods.ftbteambases.net.VisitBaseMessage;
 import net.minecraft.Util;
@@ -77,7 +79,7 @@ public class VisitScreen extends Screen {
     private void onActivate() {
         VisitList.Entry entry = visitList.getSelected();
         if (entry != null) {
-            new VisitBaseMessage(entry.data.teamName(), entry.data.archived()).sendToServer();
+            NetworkManager.sendToServer(new VisitBaseMessage(entry.data.teamName(), entry.data.archived()));
             if (minecraft.level != null) {
                 onClose();
             }

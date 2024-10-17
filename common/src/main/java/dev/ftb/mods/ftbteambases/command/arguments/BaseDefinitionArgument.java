@@ -36,7 +36,7 @@ public class BaseDefinitionArgument implements ArgumentType<BaseDefinition> {
 
         String s = reader.getString().substring(i, reader.getCursor());
 
-        return BaseDefinitionManager.getServerInstance().getBaseDefinition(new ResourceLocation(s))
+        return BaseDefinitionManager.getServerInstance().getBaseDefinition(ResourceLocation.parse(s))
                 .orElseThrow(() -> NOT_FOUND.createWithContext(reader, s));
     }
 

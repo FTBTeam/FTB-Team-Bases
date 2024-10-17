@@ -1,8 +1,10 @@
 {
   "id": "ftbteambases:default_jigsaw",
-  "description": "Test Base (Jigsaw/Shared)",
-  "preview_image": "ftbteambases:textures/spawn/default.png",
-  "dev_mode": true,
+  "display": {
+    "description": "Test Base (Jigsaw/Shared)",
+    "preview_image": "ftbteambases:textures/spawn/default.png",
+    "dev_mode": true
+  },
   "construction": {
     "template_pool": "minecraft:pillager_outpost/towers",
     "target": "minecraft:entrance",

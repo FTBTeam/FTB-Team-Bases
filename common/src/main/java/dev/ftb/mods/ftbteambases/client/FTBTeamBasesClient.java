@@ -1,5 +1,6 @@
 package dev.ftb.mods.ftbteambases.client;
 
+import dev.architectury.networking.NetworkManager;
 import dev.ftb.mods.ftbteambases.client.gui.BaseSelectionScreen;
 import dev.ftb.mods.ftbteambases.client.gui.VisitScreen;
 import dev.ftb.mods.ftbteambases.net.CreateBaseMessage;
@@ -19,7 +20,7 @@ public class FTBTeamBasesClient {
     }
 
     public static void openSelectionScreen() {
-        Minecraft.getInstance().setScreen(new BaseSelectionScreen(baseId -> new CreateBaseMessage(baseId).sendToServer()));
+        Minecraft.getInstance().setScreen(new BaseSelectionScreen(baseId -> NetworkManager.sendToServer(new CreateBaseMessage(baseId))));
     }
 
     public static Level clientLevel() {

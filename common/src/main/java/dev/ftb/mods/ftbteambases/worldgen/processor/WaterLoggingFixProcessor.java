@@ -1,6 +1,7 @@
 package dev.ftb.mods.ftbteambases.worldgen.processor;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -16,11 +17,12 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class WaterLoggingFixProcessor extends StructureProcessor {
     public static final WaterLoggingFixProcessor INSTANCE = new WaterLoggingFixProcessor();
-    public static final Codec<WaterLoggingFixProcessor> CODEC = Codec.unit(() -> INSTANCE);
+    public static final MapCodec<WaterLoggingFixProcessor> CODEC = MapCodec.unit(() -> INSTANCE);
 
     @Nullable
     @Override

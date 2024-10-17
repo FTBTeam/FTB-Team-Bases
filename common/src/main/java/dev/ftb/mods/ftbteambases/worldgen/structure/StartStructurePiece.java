@@ -26,7 +26,7 @@ public class StartStructurePiece extends TemplateStructurePiece {
 
 	public StartStructurePiece(StructureTemplateManager structureManager, CompoundTag tag) {
 		super(ModWorldGen.START_STRUCTURE_PIECE.get(), tag, structureManager, id -> DimensionUtils.makePlacementSettings(structureManager.getOrCreate(id)));
-		startId = new ResourceLocation(tag.getString("Template"));
+		startId = ResourceLocation.parse(tag.getString("Template"));
 	}
 
 	@Override

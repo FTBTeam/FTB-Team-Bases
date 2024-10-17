@@ -3,12 +3,15 @@ package dev.ftb.mods.ftbteambases.data.definition;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Optional;
 
 public record PrebuiltStructure(ResourceLocation startStructure, Optional<ResourceLocation> structureSetId,
-                                int height) implements INetworkWritable{
+                                int height) implements INetworkWritable<PrebuiltStructure> {
     public static final Codec<PrebuiltStructure> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             ResourceLocation.CODEC.fieldOf("start_structure")
                     .forGetter(PrebuiltStructure::startStructure),
@@ -18,14 +21,15 @@ public record PrebuiltStructure(ResourceLocation startStructure, Optional<Resour
                     .forGetter(PrebuiltStructure::height)
     ).apply(instance, PrebuiltStructure::new));
 
-    public static PrebuiltStructure fromBytes(FriendlyByteBuf buf) {
-        return new PrebuiltStructure(buf.readResourceLocation(), buf.readOptional(FriendlyByteBuf::readResourceLocation), buf.readVarInt());
-    }
+    public static final StreamCodec<RegistryFriendlyByteBuf, PrebuiltStructure> STREAM_CODEC = StreamCodec.composite(
+            ResourceLocation.STREAM_CODEC, PrebuiltStructure::startStructure,
+            ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC), PrebuiltStructure::structureSetId,
+            ByteBufCodecs.INT, PrebuiltStructure::height,
+            PrebuiltStructure::new
+    );
 
     @Override
-    public void toBytes(FriendlyByteBuf buf) {
-        buf.writeResourceLocation(startStructure);
-        buf.writeOptional(structureSetId, FriendlyByteBuf::writeResourceLocation);
-        buf.writeVarInt(height);
+    public StreamCodec<RegistryFriendlyByteBuf, PrebuiltStructure> streamCodec() {
+        return STREAM_CODEC;
     }
 }

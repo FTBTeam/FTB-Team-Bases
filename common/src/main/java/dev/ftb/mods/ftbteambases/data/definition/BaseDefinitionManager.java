@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import dev.architectury.utils.GameInstance;
+import dev.ftb.mods.ftblibrary.util.NetworkHelper;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.net.SyncBaseTemplatesMessage;
 import net.minecraft.resources.ResourceLocation;
@@ -65,7 +66,7 @@ public class BaseDefinitionManager {
             FTBTeamBases.LOGGER.info("loaded {} base definitions", serverTemplates.size());
 
             if (GameInstance.getServer() != null) {
-                new SyncBaseTemplatesMessage(BaseDefinitionManager.getServerInstance()).sendToAll(GameInstance.getServer());
+                NetworkHelper.sendToAll(GameInstance.getServer(), new SyncBaseTemplatesMessage(BaseDefinitionManager.getServerInstance().getDefinitions()));
             }
         }
     }

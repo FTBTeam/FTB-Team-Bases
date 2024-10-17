@@ -56,7 +56,7 @@ public class RegionFileUtil {
 
     @NotNull
     public static Path getPregenPath(String templateId, MinecraftServer server, @Nullable String subDir) {
-        Path base = server.getServerDirectory().toPath().resolve(PREGEN_PATH).resolve(templateId);
+        Path base = server.getServerDirectory().resolve(PREGEN_PATH).resolve(templateId);
         return subDir == null ? base : base.resolve(subDir);
     }
 

@@ -1,6 +1,7 @@
 package dev.ftb.mods.ftbteambases.registry;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.architectury.registry.registries.RegistrySupplier;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
@@ -27,7 +28,7 @@ public class ModWorldGen {
             = DeferredRegister.create(FTBTeamBases.MOD_ID, Registries.STRUCTURE_PLACEMENT);
     public static final DeferredRegister<StructureProcessorType<?>> STRUCTURE_PROCESSORS
             = DeferredRegister.create(FTBTeamBases.MOD_ID, Registries.STRUCTURE_PROCESSOR);
-    public static final DeferredRegister<Codec<? extends ChunkGenerator>> CHUNK_GENERATORS
+    public static final DeferredRegister<MapCodec<? extends ChunkGenerator>> CHUNK_GENERATORS
             = DeferredRegister.create(FTBTeamBases.MOD_ID, Registries.CHUNK_GENERATOR);
 
     public static final RegistrySupplier<StructureType<StartStructure>> START_STRUCTURE
@@ -46,11 +47,11 @@ public class ModWorldGen {
         ChunkGenerators.register(CHUNK_GENERATORS);
     }
 
-    private static <T extends Structure> StructureType<T> explicitStructureTypeTyping(Codec<T> codec) {
+    private static <T extends Structure> StructureType<T> explicitStructureTypeTyping(MapCodec<T> codec) {
         return () -> codec;
     }
 
-    private static <T extends StructurePlacement> StructurePlacementType<T> explicitStructurePlacementTypeTyping(Codec<T> codec) {
+    private static <T extends StructurePlacement> StructurePlacementType<T> explicitStructurePlacementTypeTyping(MapCodec<T> codec) {
         return () -> codec;
     }
 

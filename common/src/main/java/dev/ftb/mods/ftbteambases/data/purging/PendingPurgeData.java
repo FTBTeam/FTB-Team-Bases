@@ -42,7 +42,7 @@ public record PendingPurgeData(Map<String,PurgeRecord> pending) {
 
     @NotNull
     private static Path getPendingFilePath(MinecraftServer server) {
-        return server.getServerDirectory().toPath().resolve(PENDING_PATH);
+        return server.getServerDirectory().resolve(PENDING_PATH);
     }
 
     public static PendingPurgeData readFromFile(MinecraftServer server) {

@@ -1,6 +1,6 @@
 package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import dev.architectury.registry.registries.DeferredRegister;
 import dev.ftb.mods.ftblibrary.config.NameMap;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
@@ -18,15 +18,15 @@ public enum ChunkGenerators {
 
     private final ResourceLocation id;
     private final BiFunction<RegistryAccess, ResourceLocation, ChunkGenerator> factory;
-    private final Codec<? extends ChunkGenerator> codec;
+    private final MapCodec<? extends ChunkGenerator> codec;
 
-    ChunkGenerators(String id, BiFunction<RegistryAccess, ResourceLocation, ChunkGenerator> factory, Codec<? extends ChunkGenerator> codec) {
+    ChunkGenerators(String id, BiFunction<RegistryAccess, ResourceLocation, ChunkGenerator> factory, MapCodec<? extends ChunkGenerator> codec) {
         this.id = FTBTeamBases.rl(id);
         this.factory = factory;
         this.codec = codec;
     }
 
-    public static void register(DeferredRegister<Codec<? extends ChunkGenerator>> chunkGenerators) {
+    public static void register(DeferredRegister<MapCodec<? extends ChunkGenerator>> chunkGenerators) {
         for (ChunkGenerators gen : values()) {
             chunkGenerators.register(gen.id, () -> gen.codec);
         }
@@ -36,7 +36,7 @@ public enum ChunkGenerators {
         return id;
     }
 
-    public Codec<? extends ChunkGenerator> getCodec() {
+    public MapCodec<? extends ChunkGenerator> getCodec() {
         return codec;
     }
 

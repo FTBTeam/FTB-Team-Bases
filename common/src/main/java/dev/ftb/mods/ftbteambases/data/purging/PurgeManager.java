@@ -111,7 +111,7 @@ public enum PurgeManager {
 
             File tempFile = File.createTempFile("tmp-level", ".dat", levelDatFile.toFile());
             NbtIo.writeCompressed(tag, tempFile.toPath());
-            File backupFile = new File(server.getServerDirectory(), "level.dat_old");
+            File backupFile = server.getServerDirectory().resolve("level.dat.old").toFile();
             Util.safeReplaceFile(levelDatFile, tempFile.toPath(), backupFile.toPath());
 
             FTBTeamBases.LOGGER.info("removed {} purged base dimension(s) from level.dat", ids.size());

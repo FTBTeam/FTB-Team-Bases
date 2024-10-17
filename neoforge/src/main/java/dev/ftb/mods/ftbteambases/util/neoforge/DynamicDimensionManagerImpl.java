@@ -1,8 +1,8 @@
 package dev.ftb.mods.ftbteambases.util.neoforge;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.mojang.serialization.Lifecycle;
+import dev.ftb.mods.ftblibrary.util.NetworkHelper;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
@@ -23,22 +23,32 @@ import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
-import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.storage.DerivedLevelData;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.WorldData;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.level.LevelEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.Executor;
 
 /**
- * Thanks to McJty and Commoble for providing this code.
- * See original DynamicDimensionManager in RF Tools Dimensions and DimensionManager in Infiniverse
- *   for comments and more generic example.
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2022 Joseph Bettendorff a.k.a. "Commoble"
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 public class DynamicDimensionManagerImpl {
+    // See original DynamicDimensionManager in RF Tools Dimensions and DimensionManager in Infiniverse
+    // for comments and more generic example.
+    private static final RegistrationInfo DIMENSION_REGISTRATION_INFO = new RegistrationInfo(Optional.empty(), Lifecycle.stable());
+
     public static ServerLevel create(MinecraftServer server, ResourceKey<Level> worldKey, BaseDefinition baseDefinition) {
         @SuppressWarnings("deprecation")
         Map<ResourceKey<Level>, ServerLevel> map = server.forgeGetWorldMap();
@@ -69,7 +79,6 @@ public class DynamicDimensionManagerImpl {
         final Executor executor = server.executor;
         final LevelStorageSource.LevelStorageAccess anvilConverter = server.storageSource;
         final WorldData worldData = server.getWorldData();
-//        final WorldOptions worldGenSettings = worldData.worldGenOptions();
         final DerivedLevelData derivedLevelData = new DerivedLevelData(worldData, worldData.overworldData());
 
         // now we have everything we need to create the dimension and the level
@@ -81,35 +90,13 @@ public class DynamicDimensionManagerImpl {
         Registry<LevelStem> dimensionRegistry = server.registryAccess().registryOrThrow(Registries.LEVEL_STEM);
         if (dimensionRegistry instanceof MappedRegistry<LevelStem> writableRegistry) {
             writableRegistry.unfreeze();
-            writableRegistry.register(dimensionKey, dimension, Lifecycle.stable());
+            writableRegistry.register(dimensionKey, dimension, DIMENSION_REGISTRATION_INFO);
         } else {
             throw new IllegalStateException(String.format("Unable to register dimension %s -- dimension registry not writable", dimensionKey.location()));
         }
 
-//        LayeredRegistryAccess<RegistryLayer> registries = server.registries();
-//        RegistryAccess.ImmutableRegistryAccess composite = (RegistryAccess.ImmutableRegistryAccess)registries.compositeAccess();
-//
-//        Map<ResourceKey<? extends Registry<?>>, Registry<?>> regmap = new HashMap<>(composite.registries);
-//        ResourceKey<? extends Registry<?>> key = ResourceKey.create(ResourceKey.createRegistryKey(new ResourceLocation("root")),new ResourceLocation("dimension"));
-//        MappedRegistry<LevelStem> oldRegistry = (MappedRegistry<LevelStem>) regmap.get(key);
-//        Lifecycle oldLifecycle = oldRegistry.registryLifecycle();
-//
-//        final MappedRegistry<LevelStem> newRegistry = new MappedRegistry<>(Registries.LEVEL_STEM, oldLifecycle, false);
-//        for (var entry : oldRegistry.entrySet()) {
-//            final ResourceKey<LevelStem> oldKey = entry.getKey();
-//            final ResourceKey<Level> oldLevelKey = ResourceKey.create(Registries.DIMENSION, oldKey.location());
-//            final LevelStem dim = entry.getValue();
-//            if (dim != null && oldLevelKey != worldKey) {
-//                Registry.register(newRegistry, oldKey, dim);
-//            }
-//        }
-//        Registry.register(newRegistry, dimensionKey, dimension);
-//        regmap.replace(key, newRegistry);
-//        Map<? extends ResourceKey<? extends Registry<?>>, ? extends Registry<?>> newmap = (Map<? extends ResourceKey<? extends Registry<?>>, ? extends Registry<?>>) regmap;
-//        composite.registries = newmap;
-
-        // create the world instance
-        final ServerLevel newWorld = new ServerLevel(
+        // create the level instance
+        final ServerLevel newLevel = new ServerLevel(
                 server,
                 executor,
                 anvilConverter,
@@ -119,8 +106,7 @@ public class DynamicDimensionManagerImpl {
                 chunkProgressListener,
                 worldData.isDebugWorld(),
                 overworld.getSeed(), // don't need to call BiomeManager#obfuscateSeed, overworld seed is already obfuscated
-//                net.minecraft.world.level.biome.BiomeManager.obfuscateSeed(worldGenSettings.seed()),
-                ImmutableList.of(), // "special spawn list"
+                List.of(), // "special spawn list"
                 // phantoms, travelling traders, patrolling/sieging raiders, and cats are overworld special spawns
                 // this is always empty for non-overworld dimensions (including json dimensions)
                 // these spawners are ticked when the world ticks to do their spawning logic,
@@ -133,38 +119,61 @@ public class DynamicDimensionManagerImpl {
         // the vanilla behaviour is that world borders exist in every dimension simultaneously with the same size and position
         // these border listeners are automatically added to the overworld as worlds are loaded, so we should do that here too
         // TODO if world-specific world borders are ever added, change it here too
-        overworld.getWorldBorder().addListener(new BorderChangeListener.DelegateBorderChangeListener(newWorld.getWorldBorder()));
+        overworld.getWorldBorder().addListener(new BorderChangeListener.DelegateBorderChangeListener(newLevel.getWorldBorder()));
 
         // register level
-        map.put(worldKey, newWorld);
+        map.put(worldKey, newLevel);
 
         // update forge's world cache so the new level can be ticked
         server.markWorldsDirty();
 
         // fire world load event
-        NeoForge.EVENT_BUS.post(new LevelEvent.Load(newWorld));
+        NeoForge.EVENT_BUS.post(new LevelEvent.Load(newLevel));
 
         // update clients' dimension lists
-        new UpdateDimensionsListMessage(List.of(worldKey), true).sendToAll(server);
+        NetworkHelper.sendToAll(server, new UpdateDimensionsListMessage(List.of(worldKey), true));
 
-        return newWorld;
+        return newLevel;
     }
 
-    public static void destroy_Internal(final MinecraftServer server, Set<ResourceKey<Level>> keysToRemove) {
-        // we need to remove the dimension/world form three places
-        // the server's dimension registry, the server's world registry, and the overworld's world border listener
-        // the world registry is just a simple map and the world border listener has a remove() method
+    public static void destroy_Internal(MinecraftServer server, Set<ResourceKey<Level>> keysToRemove) {
+        // we need to remove the dimension/level from three places:
+        // the server's dimension/levelstem registry, the server's level registry, and
+        // the overworld's border listener
+        // the level registry is just a simple map and the border listener has a remove() method
         // the dimension registry has five sub-collections that need to be cleaned up
-        // we should also eject players from the removed worlds or they could get stuck there
+        // we should also eject players from removed worlds so they don't get stuck there
 
-        final WorldOptions worldGenSettings = server.getWorldData().worldGenOptions();
+        final Registry<LevelStem> oldRegistry = server.registryAccess().registryOrThrow(Registries.LEVEL_STEM);
+        if (!(oldRegistry instanceof MappedRegistry<LevelStem> oldMappedRegistry)) {
+            FTBTeamBases.LOGGER.warn("Cannot unload dimensions: dimension registry not an instance of MappedRegistry.");
+            return;
+        }
+        LayeredRegistryAccess<RegistryLayer> layeredRegistryAccess = ReflectionBuddy.MinecraftServerAccess.registries.apply(server);
+        RegistryAccess.Frozen composite = ReflectionBuddy.LayeredRegistryAccessAccess.composite.apply(layeredRegistryAccess);
+        if (!(composite instanceof RegistryAccess.ImmutableRegistryAccess immutableRegistryAccess)) {
+            FTBTeamBases.LOGGER.warn("Cannot unload dimensions: composite registry not an instance of ImmutableRegistryAccess.");
+            return;
+        }
+
         final Set<ResourceKey<Level>> removedLevelKeys = new HashSet<>();
         final ServerLevel overworld = server.getLevel(Level.OVERWORLD);
 
         for (final ResourceKey<Level> levelKeyToRemove : keysToRemove) {
-            ServerLevel removedLevel = server.forgeGetWorldMap().remove(levelKeyToRemove); // null if the specified key was not present
-            if (removedLevel != null) {
-                // if we removed the key from the map
+            final @Nullable ServerLevel levelToRemove = server.getLevel(levelKeyToRemove);
+            if (levelToRemove == null)
+                continue;
+
+//            UnregisterDimensionEvent unregisterDimensionEvent = new UnregisterDimensionEvent(levelToRemove);
+//            NeoForge.EVENT_BUS.post(unregisterDimensionEvent);
+//            if (unregisterDimensionEvent.isCanceled())
+//                continue;
+
+            // null if specified level not present
+            final @Nullable ServerLevel removedLevel = server.forgeGetWorldMap().remove(levelKeyToRemove);
+
+            if (removedLevel != null) // if we removed the key from the map
+            {
                 // eject players from dead world
                 // iterate over a copy as the world will remove players from the original list
                 for (final ServerPlayer player : Lists.newArrayList(removedLevel.players())) {
@@ -173,35 +182,46 @@ public class DynamicDimensionManagerImpl {
                     // if we're removing their respawn world then just send them to the overworld
                     if (keysToRemove.contains(respawnKey)) {
                         respawnKey = Level.OVERWORLD;
-                        player.setRespawnPosition(Level.OVERWORLD, null, 0, false, false);
+                        player.setRespawnPosition(respawnKey, null, 0, false, false);
                     }
                     if (respawnKey == null) {
                         respawnKey = Level.OVERWORLD;
                     }
-                    final ServerLevel destinationLevel = server.getLevel(respawnKey);
+                    @Nullable ServerLevel destinationLevel = server.getLevel(respawnKey);
+                    if (destinationLevel == null) {
+                        destinationLevel = overworld;
+                    }
+
+                    @Nullable
                     BlockPos destinationPos = player.getRespawnPosition();
                     if (destinationPos == null) {
                         destinationPos = destinationLevel.getSharedSpawnPos();
                     }
+
                     final float respawnAngle = player.getRespawnAngle();
-                    // "respawning" the player via the player list schedules a task in the server to run after the post-server tick
-                    // that causes some minor logspam due to the player's world no longer being loaded
-                    // teleporting the player this way instead avoids this
+                    // "respawning" the player via the player list schedules a task in the server to
+                    // run after the post-server tick
+                    // that causes some minor logspam due to the player's world no longer being
+                    // loaded
+                    // teleporting the player via a teleport avoids this
                     player.teleportTo(destinationLevel, destinationPos.getX(), destinationPos.getY(), destinationPos.getZ(), respawnAngle, 0F);
                 }
-                // save the world now or it won't be saved later and data that may be wanted to be kept may be lost
+                // save the world now or it won't be saved later and data that may be wanted to
+                // be kept may be lost
                 removedLevel.save(null, false, removedLevel.noSave());
 
-                // fire world unload event -- when the server stops, this would fire after worlds get saved, so we'll do that here too
+                // fire world unload event -- when the server stops, this would fire after
+                // worlds get saved, we'll do that here too
                 NeoForge.EVENT_BUS.post(new LevelEvent.Unload(removedLevel));
 
                 // remove the world border listener if possible
                 final WorldBorder overworldBorder = overworld.getWorldBorder();
                 final WorldBorder removedWorldBorder = removedLevel.getWorldBorder();
-                final List<BorderChangeListener> listeners = overworldBorder.listeners;
+                final List<BorderChangeListener> listeners = ReflectionBuddy.WorldBorderAccess.listeners.apply(overworldBorder);
                 BorderChangeListener targetListener = null;
                 for (BorderChangeListener listener : listeners) {
-                    if (listener instanceof BorderChangeListener.DelegateBorderChangeListener && removedWorldBorder == ((BorderChangeListener.DelegateBorderChangeListener) listener).worldBorder) {
+                    if (listener instanceof BorderChangeListener.DelegateBorderChangeListener delegate
+                            && removedWorldBorder == ReflectionBuddy.DelegateBorderChangeListenerAccess.worldBorder.apply(delegate)) {
                         targetListener = listener;
                         break;
                     }
@@ -210,50 +230,56 @@ public class DynamicDimensionManagerImpl {
                     overworldBorder.removeListener(targetListener);
                 }
 
-                // track the removed world
+                // track the removed level
                 removedLevelKeys.add(levelKeyToRemove);
             }
         }
 
         if (!removedLevelKeys.isEmpty()) {
-            // replace the old dimension registry with a new one containing the dimensions that weren't removed, in the same order
+            // replace the old dimension registry with a new one containing the dimensions
+            // that weren't removed, in the same order
+            final MappedRegistry<LevelStem> newRegistry = new MappedRegistry<>(Registries.LEVEL_STEM, oldMappedRegistry.registryLifecycle());
 
-            LayeredRegistryAccess<RegistryLayer> registries = server.registries();
-            RegistryAccess.ImmutableRegistryAccess composite = (RegistryAccess.ImmutableRegistryAccess)registries.compositeAccess();
-
-            // @todo 1.19.3
-//            Map<? extends ResourceKey<?>,? extends Registry<?>> map = composite.registries;
-
-            Map<ResourceKey<?>,Registry<?>> hashMap = new HashMap<>(); // @todo 1.19.3 map
-            ResourceKey<?> key = ResourceKey.create(ResourceKey.createRegistryKey(new ResourceLocation("root")),new ResourceLocation("dimension"));
-
-            final Registry<LevelStem> oldRegistry = (Registry<LevelStem>) hashMap.get(key);
-            Lifecycle oldLifecycle = null; // @todo 1.19.3 AT ((MappedRegistry<LevelStem>)oldRegistry).registryLifecycle;
-            final Registry<LevelStem> newRegistry = new MappedRegistry<>(Registries.LEVEL_STEM, oldLifecycle, false);
-
-            for (var entry : oldRegistry.entrySet()) {
+            for (final var entry : oldRegistry.entrySet()) {
                 final ResourceKey<LevelStem> oldKey = entry.getKey();
                 final ResourceKey<Level> oldLevelKey = ResourceKey.create(Registries.DIMENSION, oldKey.location());
                 final LevelStem dimension = entry.getValue();
                 if (oldKey != null && dimension != null && !removedLevelKeys.contains(oldLevelKey)) {
-                    if (newRegistry instanceof MappedRegistry<LevelStem> mappedRegistry) {
-                        mappedRegistry.unfreeze();
-                    }
-                    Registry.register(newRegistry, oldKey, dimension);   // @todo 1.18.2 is this right?
+                    newRegistry.register(oldKey, dimension, oldRegistry.registrationInfo(oldKey).orElse(DIMENSION_REGISTRATION_INFO));
                 }
             }
-            hashMap.replace(key, newRegistry);
 
             // then replace the old registry with the new registry
-            // @todo 1.19.3
-//            composite.registries = hashMap;
+            // as of 1.20.1 the dimension registry is stored in the server's layered registryaccess
+            // this has several immutable collections of sub-registryaccesses,
+            // so we'll need to recreate each of them.
+
+            // Each ServerLevel has a reference to the layered registry access's *composite* registry access
+            // so we should edit the internal fields where possible (instead of reconstructing the registry accesses)
+
+            List<RegistryAccess.Frozen> newRegistryAccessList = new ArrayList<>();
+            for (RegistryLayer layer : RegistryLayer.values()) {
+                if (layer == RegistryLayer.DIMENSIONS) {
+                    newRegistryAccessList.add(new RegistryAccess.ImmutableRegistryAccess(List.of(newRegistry)).freeze());
+                } else {
+                    newRegistryAccessList.add(layeredRegistryAccess.getLayer(layer));
+                }
+            }
+            Map<ResourceKey<? extends Registry<?>>, Registry<?>> newRegistryMap = new HashMap<>();
+            for (var registryAccess : newRegistryAccessList) {
+                var registries = registryAccess.registries().toList();
+                for (var registryEntry : registries) {
+                    newRegistryMap.put(registryEntry.key(), registryEntry.value());
+                }
+            }
+            ReflectionBuddy.LayeredRegistryAccessAccess.values.set(layeredRegistryAccess, List.copyOf(newRegistryAccessList));
+            ReflectionBuddy.ImmutableRegistryAccessAccess.registries.set(immutableRegistryAccess, newRegistryMap);
 
             // update the server's levels so dead levels don't get ticked
             server.markWorldsDirty();
-            // clients will need to be notified of the removed level for the dimension command suggester
-            new UpdateDimensionsListMessage(removedLevelKeys, false).sendToAll(server);
+
+            // notify client of the removed levels
+            NetworkHelper.sendToAll(server, new UpdateDimensionsListMessage(List.copyOf(removedLevelKeys), false));
         }
     }
-
-
 }

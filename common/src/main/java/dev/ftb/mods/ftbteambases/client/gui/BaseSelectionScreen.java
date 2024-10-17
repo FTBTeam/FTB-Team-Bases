@@ -22,7 +22,6 @@ import java.util.function.Consumer;
 public class BaseSelectionScreen extends Screen {
     private final Consumer<ResourceLocation> onSelect;
     private StartList startList;
-    private EditBox searchBox;
     private Button createButton;
     private AbstractTexture fallbackIcon;
 
@@ -40,7 +39,7 @@ public class BaseSelectionScreen extends Screen {
         super.init();
 
         startList = new StartList(minecraft, width, height - UPPER_HEIGHT - LOWER_HEIGHT, UPPER_HEIGHT);
-        searchBox = new EditBox(font, width / 2 - 160 / 2, 40, 160, 20, Component.empty());
+        EditBox searchBox = new EditBox(font, width / 2 - 160 / 2, 40, 160, 20, Component.empty());
         searchBox.setResponder(startList::addChildren);
 
         addRenderableWidget(Button.builder(Component.translatable("gui.back"), btn -> onClose())
@@ -141,7 +140,7 @@ public class BaseSelectionScreen extends Screen {
                 graphics.drawString(font, Component.translatable(baseDef.description()), startX, top + 10, 0xFFFFFF);
                 graphics.drawString(font, Component.translatable("ftbteambases.gui.by", baseDef.author()), startX, top + 26, 0xD3D3D3);
 
-                ResourceLocation preview = baseDef.previewImage().orElse(BaseDefinition.DEFAULT_PREVIEW);
+                ResourceLocation preview = baseDef.previewImage();
                 graphics.blit(preview, left + 7, top + 7, 0f, 0f, 56, 32, 56, 32);
             }
         }

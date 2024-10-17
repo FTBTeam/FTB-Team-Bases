@@ -11,6 +11,7 @@ import net.minecraft.server.TickTask;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
+import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,6 +35,7 @@ public class RegionFileRelocator {
     private final CommandSourceStack source;
     private final boolean force;
     private final Path destDir;
+    private final RegionStorageInfo storageInfo;
     private final int totalChunks;
     private final AtomicInteger chunkProgress;
     private final UUID relocatorId;
@@ -52,6 +54,8 @@ public class RegionFileRelocator {
         Path pregenPath = RegionFileUtil.getPregenPath(templateId, source.getServer(), "region");
 
         destDir = RegionFileUtil.getPathForDimension(source.getServer(), dimensionKey, "region");
+
+        storageInfo = new RegionStorageInfo(source.getServer().storageSource.getLevelId(), dimensionKey, "region");
 
         try (Stream<Path> s = Files.walk(pregenPath).filter(f -> f.getFileName().toString().endsWith(".mca"))) {
             s.forEach(file -> RegionFileUtil.getRegionCoords(file).ifPresent(oldRegionPos ->
@@ -159,7 +163,7 @@ public class RegionFileRelocator {
             return false;
         }
 
-        try (RegionFileStorage storage = new RegionFileStorage(workDir, true)) {
+        try (RegionFileStorage storage = new RegionFileStorage(storageInfo, workDir, true)) {
             Files.copy(fromFile, workFile);
             FTBTeamBases.LOGGER.debug("copied {} to {}", fromFile, workFile);
             if (updateRegionChunkData(storage, newCoords, data.regionOffset.x(), data.regionOffset.z())) {

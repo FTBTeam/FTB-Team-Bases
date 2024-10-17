@@ -20,6 +20,7 @@ import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.TeamArgument;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -33,7 +34,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.portal.PortalInfo;
+import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.minecraft.world.phys.Vec3;
@@ -224,8 +225,8 @@ public class BaseInstanceManager extends SavedData {
             throw DIM_MISSING.create(Level.NETHER.location().toString());
         }
 
-        PortalInfo portalInfo = NetherPortalPlacement.teamSpecificEntryPoint(nether, player, team);
-        BlockPos pos = BlockPos.containing(portalInfo.pos.x(), portalInfo.pos.y(), portalInfo.pos.z());
+        DimensionTransition transition = NetherPortalPlacement.getTeamEntryPoint(nether, player, null);
+        BlockPos pos = BlockPos.containing(transition.pos().x(), transition.pos().y(), transition.pos().z());
 
         ChunkPos chunkpos = new ChunkPos(pos);
         nether.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
@@ -233,22 +234,22 @@ public class BaseInstanceManager extends SavedData {
         if (player.isSleeping()) {
             player.stopSleepInBed(true, true);
         }
-        player.teleportTo(nether, portalInfo.pos.x(), portalInfo.pos.y() + 0.01, portalInfo.pos.z(), player.getYRot(), player.getXRot());
+        player.teleportTo(nether, transition.pos().x(), transition.pos().y() + 0.01, transition.pos().z(), player.getYRot(), player.getXRot());
         player.setPortalCooldown();
 
         return true;
     }
 
     @Override
-    public CompoundTag save(CompoundTag compoundTag) {
+    public CompoundTag save(CompoundTag compoundTag, HolderLookup.Provider provider) {
         return Util.make(new CompoundTag(), tag ->
-                tag.put("manager", CODEC.encodeStart(NbtOps.INSTANCE, this)
+                tag.put("manager", CODEC.encodeStart(provider.createSerializationContext(NbtOps.INSTANCE), this)
                         .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to serialize base instance data: {}", err))
                         .orElse(new CompoundTag())));
     }
 
-    private static BaseInstanceManager load(CompoundTag tag) {
-        BaseInstanceManager res = CODEC.parse(NbtOps.INSTANCE, tag.getCompound("manager"))
+    private static BaseInstanceManager load(CompoundTag tag, HolderLookup.Provider provider) {
+        BaseInstanceManager res = CODEC.parse(provider.createSerializationContext(NbtOps.INSTANCE), tag.getCompound("manager"))
                 .resultOrPartial(err -> FTBTeamBases.LOGGER.error("failed to deserialize base instance data: {}", err))
                 .orElse(BaseInstanceManager.createNew());
 

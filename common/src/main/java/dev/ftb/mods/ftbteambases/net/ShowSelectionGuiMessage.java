@@ -1,26 +1,24 @@
 package dev.ftb.mods.ftbteambases.net;
 
 import dev.architectury.networking.NetworkManager;
-import dev.architectury.networking.simple.BaseS2CMessage;
-import dev.architectury.networking.simple.MessageType;
+import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.client.FTBTeamBasesClient;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public class ShowSelectionGuiMessage extends BaseS2CMessage {
-    public ShowSelectionGuiMessage() {}
+public enum ShowSelectionGuiMessage implements CustomPacketPayload {
+    INSTANCE;
 
-    public ShowSelectionGuiMessage(FriendlyByteBuf buf) {}
+    public static final Type<ShowSelectionGuiMessage> TYPE = new Type<>(FTBTeamBases.rl("show_selection_gui"));
+    public static final StreamCodec<FriendlyByteBuf, ShowSelectionGuiMessage> STREAM_CODEC = StreamCodec.unit(ShowSelectionGuiMessage.INSTANCE);
 
-    @Override
-    public MessageType getType() {
-        return FTBTeamBasesNet.SHOW_SELECTION_GUI;
+    public static void handle(ShowSelectionGuiMessage ignored, NetworkManager.PacketContext context) {
+        context.queue(FTBTeamBasesClient::openSelectionScreen);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf) {}
-
-    @Override
-    public void handle(NetworkManager.PacketContext context) {
-        context.queue(FTBTeamBasesClient::openSelectionScreen);
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

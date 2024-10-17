@@ -1,12 +1,12 @@
 package dev.ftb.mods.ftbteambases.worldgen.structure;
 
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
-import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
-import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
+import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionProvider;
+import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
+import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.heightproviders.HeightProvider;
@@ -18,11 +18,11 @@ import java.util.Optional;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class StartStructure extends Structure {
-	public static final Codec<StartStructure> CODEC = RecordCodecBuilder.<StartStructure>mapCodec((x) -> x.group(
+	public static final MapCodec<StartStructure> CODEC = RecordCodecBuilder.mapCodec((x) -> x.group(
 			settingsCodec(x),
 			HeightProvider.CODEC.fieldOf("start_height").forGetter(s -> s.startHeight),
 			Heightmap.Types.CODEC.optionalFieldOf("project_start_to_heightmap").forGetter(s -> s.projectStartToHeightmap)
-	).apply(x, StartStructure::new)).codec();
+	).apply(x, StartStructure::new));
 
 	private final HeightProvider startHeight;
 	private final Optional<Heightmap.Types> projectStartToHeightmap;

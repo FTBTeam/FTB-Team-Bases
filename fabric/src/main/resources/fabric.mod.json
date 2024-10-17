@@ -3,9 +3,9 @@
   "id": "ftbteambases",
   "version": "${version}",
   "name": "FTB Team Bases",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "description": "An extension to FTB Teams to provide multi-dimension support for FTB modpacks",
   "authors": [
-    "Me!"
+    "FTB Team"
   ],
   "contact": {
     "homepage": "https://fabricmc.net/",
@@ -23,8 +23,9 @@
     "ftbteambases-common.mixins.json"
   ],
   "depends": {
-    "fabric": "*",
-    "minecraft": ">=1.20.1",
-    "architectury": ">=9.1.12"
+    "fabric": "${fabricapiversionrange}",
+    "minecraft": "~${mcversion}",
+    "ftblibrary": ">=${ftblibraryversion}",
+    "ftbteams": ">=${ftbteamsversion}"
   }
 }

@@ -1,20 +1,16 @@
 package dev.ftb.mods.ftbteambases.net;
 
-import dev.architectury.networking.simple.MessageType;
-import dev.architectury.networking.simple.SimpleNetworkManager;
-import dev.ftb.mods.ftbteambases.FTBTeamBases;
+import dev.ftb.mods.ftblibrary.util.NetworkHelper;
 
-public interface FTBTeamBasesNet {
-    SimpleNetworkManager NET = SimpleNetworkManager.create(FTBTeamBases.MOD_ID);
+public class FTBTeamBasesNet {
+    public static void init() {
+        NetworkHelper.registerC2S(CreateBaseMessage.TYPE, CreateBaseMessage.STREAM_CODEC, CreateBaseMessage::handle);
+        NetworkHelper.registerC2S(VisitBaseMessage.TYPE, VisitBaseMessage.STREAM_CODEC, VisitBaseMessage::handle);
 
-    MessageType SYNC_BASE_TEMPLATES = NET.registerS2C("sync_base_template", SyncBaseTemplatesMessage::new);
-    MessageType UPDATE_DIMENSION_LIST = NET.registerS2C("update_dimension_list", UpdateDimensionsListMessage::new);
-    MessageType SHOW_SELECTION_GUI = NET.registerS2C("show_selection_gui", ShowSelectionGuiMessage::new);
-    MessageType CREATE_DIMENSION_FOR_TEAM = NET.registerC2S("create_dimension", CreateBaseMessage::new);
-    MessageType VOID_TEAM_DIMENSION = NET.registerS2C("void_team_dimension", VoidTeamDimensionMessage::new);
-    MessageType OPEN_VISIT_SCREEN = NET.registerS2C("open_visit_screen", OpenVisitScreenMessage::new);
-    MessageType VISIT_LIVE_BASE = NET.registerC2S("visit_live_base", VisitBaseMessage::new);
-
-    static void init() {
+        NetworkHelper.registerS2C(OpenVisitScreenMessage.TYPE, OpenVisitScreenMessage.STREAM_CODEC, OpenVisitScreenMessage::handle);
+        NetworkHelper.registerS2C(ShowSelectionGuiMessage.TYPE, ShowSelectionGuiMessage.STREAM_CODEC, ShowSelectionGuiMessage::handle);
+        NetworkHelper.registerS2C(SyncBaseTemplatesMessage.TYPE, SyncBaseTemplatesMessage.STREAM_CODEC, SyncBaseTemplatesMessage::handle);
+        NetworkHelper.registerS2C(UpdateDimensionsListMessage.TYPE, UpdateDimensionsListMessage.STREAM_CODEC, UpdateDimensionsListMessage::handle);
+        NetworkHelper.registerS2C(VoidTeamDimensionMessage.TYPE, VoidTeamDimensionMessage.STREAM_CODEC, VoidTeamDimensionMessage::handle);
     }
 }

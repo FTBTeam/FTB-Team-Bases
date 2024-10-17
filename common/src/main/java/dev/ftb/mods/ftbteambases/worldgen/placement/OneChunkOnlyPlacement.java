@@ -1,6 +1,7 @@
 package dev.ftb.mods.ftbteambases.worldgen.placement;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import net.minecraft.core.Vec3i;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Ensures the start structure generates only in a specific chunk
  */
 public class OneChunkOnlyPlacement extends StructurePlacement {
-    public static final Codec<OneChunkOnlyPlacement> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+    public static final MapCodec<OneChunkOnlyPlacement> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.INT.fieldOf("cx").forGetter(z -> z.cx),
             Codec.INT.fieldOf("cz").forGetter(z -> z.cz)
     ).apply(instance, OneChunkOnlyPlacement::new));

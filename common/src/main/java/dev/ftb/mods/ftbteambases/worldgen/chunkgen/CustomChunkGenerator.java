@@ -2,6 +2,7 @@ package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Basically the vanilla NoiseBasedChunkGenerator, with an optional initial start structure.  Can be configured to use
@@ -29,7 +31,7 @@ import java.util.List;
  * specific instanceof checks during chunk gen which require this to be a type of NoiseBasedChunkGenerator
  */
 public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements BaseDefinitionProvider {
-    public static final Codec<CustomChunkGenerator> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+    public static final MapCodec<CustomChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             BiomeSource.CODEC.fieldOf("biome_source").forGetter((gen) -> gen.biomeSource),
             NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(NoiseBasedChunkGenerator::generatorSettings),
             ResourceLocation.CODEC.optionalFieldOf("prebuilt_structure_id", FTBTeamBases.NO_TEMPLATE_ID).forGetter(CustomChunkGenerator::getBaseDefinitionId)
@@ -42,7 +44,7 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         BiomeSource biomeSource;
         if (!ServerConfig.SINGLE_BIOME_ID.get().isEmpty()) {
             ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME,
-                    new ResourceLocation(ServerConfig.SINGLE_BIOME_ID.get()));
+                    ResourceLocation.parse(ServerConfig.SINGLE_BIOME_ID.get()));
             biomeSource = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey));
         } else {
             Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
@@ -51,7 +53,7 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         }
 
         ResourceKey<NoiseGeneratorSettings> noiseSettingsKey = ResourceKey.create(Registries.NOISE_SETTINGS,
-                new ResourceLocation(ServerConfig.NOISE_SETTINGS.get()));
+                ResourceLocation.parse(ServerConfig.NOISE_SETTINGS.get()));
         Holder<NoiseGeneratorSettings> noiseSettings = registryAccess.registryOrThrow(Registries.NOISE_SETTINGS)
                 .getHolderOrThrow(noiseSettingsKey);
 
@@ -83,7 +85,7 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
     }
 
     @Override
-    protected Codec<? extends ChunkGenerator> codec() {
+    protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;
     }
 

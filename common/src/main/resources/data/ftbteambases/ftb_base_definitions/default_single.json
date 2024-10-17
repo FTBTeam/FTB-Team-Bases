@@ -1,8 +1,10 @@
 {
   "id": "ftbteambases:default_single",
-  "description": "Test Base (Single/Shared)",
-  "preview_image": "ftbteambases:textures/spawn/default.png",
-  "dev_mode": true,
+  "display": {
+    "description": "Test Base (Single/Shared)",
+    "preview_image": "ftbteambases:textures/spawn/default.png",
+    "dev_mode": true
+  },
   "construction": {
     "structure_location": "minecraft:village/plains/houses/plains_medium_house_1",
     "y_pos": 64,

@@ -1,5 +1,6 @@
 package dev.ftb.mods.ftbteambases.block;
 
+import dev.architectury.networking.NetworkManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.net.ShowSelectionGuiMessage;
@@ -33,7 +34,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
 
     @Override
     public void entityInside(BlockState blockState, Level level, BlockPos blockPos, Entity entity) {
-        if (level.isClientSide || entity.isPassenger() || entity.isVehicle() || !entity.canChangeDimensions() || !(entity instanceof ServerPlayer player)) {
+        if (level.isClientSide || !(entity instanceof ServerPlayer player) || !player.canUsePortal(false)) {
             return;
         }
 
@@ -48,7 +49,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
                 } else if (!BaseConstructionManager.INSTANCE.isConstructing(player)) {
                     // player not in a party: bring up the base selection GUI
                     player.setPortalCooldown();
-                    new ShowSelectionGuiMessage().sendTo(player);
+                    NetworkManager.sendToPlayer(player, ShowSelectionGuiMessage.INSTANCE);
                 }
             });
         }

@@ -10,16 +10,16 @@ config = "ftbteambases-common.mixins.json"
 modId = "ftbteambases"
 version = "${version}"
 displayName = "FTB Team Bases"
-authors = "Me!"
+authors = "FTB Team"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+An extension to FTB Teams to provide multi-dimension support for FTB modpacks
 '''
 #logoFile = ""
 
 [[dependencies.ftbteambases]]
 modId = "neoforge"
 type = "required"
-versionRange = "[${neoforgeversion},)"
+versionRange = "${neoforgeversionrange}"
 ordering = "NONE"
 side = "BOTH"
 

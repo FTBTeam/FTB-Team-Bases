@@ -1,39 +1,33 @@
 package dev.ftb.mods.ftbteambases.net;
 
 import dev.architectury.networking.NetworkManager;
-import dev.architectury.networking.simple.BaseS2CMessage;
-import dev.architectury.networking.simple.MessageType;
+import dev.ftb.mods.ftblibrary.util.NetworkHelper;
+import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.client.FTBTeamBasesClient;
 import dev.ftb.mods.ftbteambases.client.VoidTeamLevelData;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 
-public class VoidTeamDimensionMessage extends BaseS2CMessage {
-    private static final VoidTeamDimensionMessage INSTANCE = new VoidTeamDimensionMessage();
+public enum VoidTeamDimensionMessage implements CustomPacketPayload {
+    INSTANCE;
 
-    private VoidTeamDimensionMessage() {
-    }
+    public static final Type<VoidTeamDimensionMessage> TYPE = new Type<>(FTBTeamBases.rl("void_team_dimension"));
+    public static final StreamCodec<FriendlyByteBuf, VoidTeamDimensionMessage> STREAM_CODEC = StreamCodec.unit(VoidTeamDimensionMessage.INSTANCE);
 
-    VoidTeamDimensionMessage(FriendlyByteBuf buf) {
-    }
-
-    @Override
-    public MessageType getType() {
-        return FTBTeamBasesNet.VOID_TEAM_DIMENSION;
-    }
-
-    @Override
-    public void write(FriendlyByteBuf buf) {
-    }
-
-    @Override
-    public void handle(NetworkManager.PacketContext context) {
+    public static void handle(VoidTeamDimensionMessage ignored, NetworkManager.PacketContext ignoredContext) {
         if (FTBTeamBasesClient.clientLevel().getLevelData() instanceof VoidTeamLevelData vld) {
             vld.ftb$setVoidTeamDimension();
         }
     }
 
     public static void syncTo(ServerPlayer player) {
-        INSTANCE.sendTo(player);
+        NetworkHelper.sendTo(player, INSTANCE);
+    }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

@@ -3,6 +3,7 @@ package dev.ftb.mods.ftbteambases.command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import dev.architectury.networking.NetworkManager;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.net.OpenVisitScreenMessage;
 import dev.ftb.mods.ftbteambases.util.MiscUtil;
@@ -70,7 +71,7 @@ public class VisitCommand {
             return 0;
         }
 
-        new OpenVisitScreenMessage(dimensionData).sendTo(source.getPlayerOrException());
+        NetworkManager.sendToPlayer(source.getPlayerOrException(), new OpenVisitScreenMessage(dimensionData));
 
         return 1;
     }

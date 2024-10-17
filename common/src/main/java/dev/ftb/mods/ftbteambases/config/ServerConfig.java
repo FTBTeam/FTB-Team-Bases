@@ -58,11 +58,15 @@ public interface ServerConfig {
     BooleanValue ALLOW_NETHER_PORTALS = NETHER.addBoolean("allow_nether_portals", true)
             .comment("When set to true, nether portals may be constructed in team dimensions");
     BooleanValue TEAM_SPECIFIC_NETHER_ENTRY_POINT = NETHER.addBoolean("team_specific_nether_entry_point", true)
-            .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
+            .comment("If true, then players going to the Nether via Nether Portal will be sent to a random (but deterministic for the team) position in the Nether");
+    IntValue MIN_DIST_FROM_ORIGIN = NETHER.addInt("min_dist_from_origin", 1000, 0, Integer.MAX_VALUE)
+            .comment("When 'team_specific_nether_entry_point' is true, this is the minimum distance from XZ=(0,0) this spot can be");
+    IntValue MAX_DIST_FROM_ORIGIN = NETHER.addInt("max_dist_from_origin", 25000, 1000, Integer.MAX_VALUE)
+            .comment("When 'team_specific_nether_entry_point' is true, this is the maximum distance from XZ=(0,0) this spot can be. Must be greater than 'max_dist_from_origin'.");
 
     static Optional<ResourceLocation> lobbyLocation() {
         try {
-            return Optional.of(new ResourceLocation(LOBBY_STRUCTURE_LOCATION.get()));
+            return Optional.of(ResourceLocation.parse(LOBBY_STRUCTURE_LOCATION.get()));
         } catch (ResourceLocationException ignored) {
             FTBTeamBases.LOGGER.error("invalid lobby resource location: {}", LOBBY_STRUCTURE_LOCATION.get());
             return Optional.empty();
@@ -71,7 +75,7 @@ public interface ServerConfig {
 
     static Optional<ResourceKey<Level>> lobbyDimension() {
         try {
-            return Optional.of(ResourceKey.create(Registries.DIMENSION, new ResourceLocation(LOBBY_DIMENSION.get())));
+            return Optional.of(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(LOBBY_DIMENSION.get())));
         } catch (ResourceLocationException ignored) {
             FTBTeamBases.LOGGER.error("invalid dimension ID in config 'lobby_dimension': {}", ServerConfig.LOBBY_DIMENSION.get());
             return Optional.empty();

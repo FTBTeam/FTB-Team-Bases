@@ -1,6 +1,7 @@
 package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
@@ -37,7 +38,7 @@ import java.util.concurrent.Executor;
  * specific instanceof checks during chunk gen which require this to be a type of NoiseBasedChunkGenerator
  */
 public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements BaseDefinitionProvider {
-    public static final Codec<VoidChunkGenerator> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+    public static final MapCodec<VoidChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             BiomeSource.CODEC.fieldOf("biome_source").forGetter(ChunkGenerator::getBiomeSource),
             NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(NoiseBasedChunkGenerator::generatorSettings),
             ResourceLocation.CODEC.optionalFieldOf("prebuilt_structure_id", FTBTeamBases.NO_TEMPLATE_ID).forGetter(VoidChunkGenerator::getBaseDefinitionId)
@@ -75,7 +76,7 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
     }
 
     @Override
-    protected Codec<? extends ChunkGenerator> codec() {
+    protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;
     }
 
@@ -95,8 +96,8 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
     }
 
     @Override
-    public CompletableFuture<ChunkAccess> fillFromNoise(Executor executor, Blender blender, RandomState random, StructureManager structureManager, ChunkAccess chunk) {
-        return CompletableFuture.completedFuture(chunk);
+    public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunkAccess) {
+        return CompletableFuture.completedFuture(chunkAccess);
     }
 
     @Override

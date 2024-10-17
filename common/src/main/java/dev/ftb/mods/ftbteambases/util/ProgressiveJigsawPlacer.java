@@ -24,9 +24,11 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+import net.minecraft.world.level.levelgen.structure.pools.DimensionPadding;
 import net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
 import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasLookup;
+import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 import java.util.ArrayDeque;
@@ -68,7 +70,7 @@ public class ProgressiveJigsawPlacer {
         Holder<StructureTemplatePool> holder = level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL)
                 .getHolderOrThrow(jbe.getPool());
 
-        return JigsawPlacement.addPieces(context, holder, Optional.of(jbe.getTarget()), maxDepth, origin, false, Optional.empty(), 128, PoolAliasLookup.EMPTY)
+        return JigsawPlacement.addPieces(context, holder, Optional.of(jbe.getTarget()), maxDepth, origin, false, Optional.empty(), 128, PoolAliasLookup.EMPTY, DimensionPadding.ZERO, LiquidSettings.IGNORE_WATERLOGGING)
                 .map(stub -> {
                     StructurePiecesBuilder builder = stub.getPiecesBuilder();
                     ArrayDeque<WorkUnit> units = new ArrayDeque<>(builder.build().pieces().stream()

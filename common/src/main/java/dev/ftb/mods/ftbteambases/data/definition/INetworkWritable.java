@@ -1,7 +1,8 @@
 package dev.ftb.mods.ftbteambases.data.definition;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 
-public interface INetworkWritable {
-    void toBytes(FriendlyByteBuf buf);
+public interface INetworkWritable<T> {
+    StreamCodec<RegistryFriendlyByteBuf,T> streamCodec();
 }

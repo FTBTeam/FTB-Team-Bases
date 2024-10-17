@@ -9,12 +9,11 @@
   "mixins": [
     "BaseFireBlockMixin",
     "ChunkGeneratorAccess",
-    "EntityAccess",
     "LevelAccess",
+    "NetherPortalBlockAccess",
+    "NetherPortalBlockMixin",
     "PersistentEntitySectionManagerAccess",
-    "ServerLevelAccess",
-    "ServerPlayerAccess",
-    "ServerPlayerMixin"
+    "ServerLevelAccess"
   ],
   "injectors": {
     "defaultRequire": 1

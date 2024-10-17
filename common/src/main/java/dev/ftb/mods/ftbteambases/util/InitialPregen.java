@@ -24,7 +24,7 @@ public class InitialPregen {
     public static boolean maybeDoInitialPregen(MinecraftServer server) {
         List<Path> subDirs = new ArrayList<>(INITIAL_SUBDIRS);
 
-        Path initialPath = server.getServerDirectory().toPath().resolve(PREGEN_INITIAL_PATH);
+        Path initialPath = server.getServerDirectory().resolve(PREGEN_INITIAL_PATH);
         Path worldPath = server.getWorldPath(LevelResource.ROOT);
         if (Files.isDirectory(initialPath) && !Files.isDirectory(worldPath.resolve("region"))) {
             // looks like a brand-new world, just created - copy over any pregen MCA files for overworld/nether/end if they exist

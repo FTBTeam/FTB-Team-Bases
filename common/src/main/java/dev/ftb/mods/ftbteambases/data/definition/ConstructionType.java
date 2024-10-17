@@ -2,16 +2,37 @@ package dev.ftb.mods.ftbteambases.data.definition;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.ExtraCodecs;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
 public record ConstructionType(Optional<PrebuiltStructure> prebuilt, Optional<Pregen> pregen, Optional<JigsawParams> jigsaw, Optional<SingleStructure> singleStructure) {
     public static final Codec<ConstructionType> CODEC
-            = ExtraCodecs.xor(PrebuiltStructure.CODEC, ExtraCodecs.xor(Pregen.CODEC, ExtraCodecs.xor(JigsawParams.CODEC, SingleStructure.CODEC)))
+            = Codec.xor(PrebuiltStructure.CODEC, Codec.xor(Pregen.CODEC, Codec.xor(JigsawParams.CODEC, SingleStructure.CODEC)))
             .xmap(ConstructionType::merge, ConstructionType::split);
+    public static final StreamCodec<RegistryFriendlyByteBuf, ConstructionType> STREAM_CODEC = StreamCodec.of(
+            (buf, object) -> {
+                if (object.prebuilt.isPresent()) {
+                    TypeID.PREBUILT.write(object.prebuilt.get(), buf);
+                } else if (object.pregen.isPresent()) {
+                    TypeID.PREGEN.write(object.pregen.get(), buf);
+                } else if (object.jigsaw.isPresent()) {
+                    TypeID.JIGSAW.write(object.jigsaw.get(), buf);
+                } else if (object.singleStructure.isPresent()) {
+                    TypeID.SINGLE.write(object.singleStructure.get(), buf);
+                } else {
+                    throw new IllegalStateException("none of prebuilt/pregen/jigsaw/single-structure present!");
+                }
+            },
+            buf -> switch (buf.readEnum(TypeID.class)) {
+                case PREBUILT -> ConstructionType.ofPrebuilt(PrebuiltStructure.STREAM_CODEC.decode(buf));
+                case PREGEN -> ConstructionType.ofPregen(Pregen.STREAM_CODEC.decode(buf));
+                case JIGSAW -> ConstructionType.ofJigsaw(JigsawParams.STREAM_CODEC.decode(buf));
+                case SINGLE -> ConstructionType.ofSingleStructure(SingleStructure.STREAM_CODEC.decode(buf));
+            }
+    );
 
     private static ConstructionType merge(Either<PrebuiltStructure, Either<Pregen, Either<JigsawParams, SingleStructure>>> either) {
         return either.map(ConstructionType::ofPrebuilt,
@@ -47,38 +68,15 @@ public record ConstructionType(Optional<PrebuiltStructure> prebuilt, Optional<Pr
         return new ConstructionType(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(singleStructure));
     }
 
-    public static ConstructionType fromBytes(FriendlyByteBuf buf) {
-        return switch (buf.readEnum(TypeID.class)) {
-            case PREBUILT -> ConstructionType.ofPrebuilt(PrebuiltStructure.fromBytes(buf));
-            case PREGEN -> ConstructionType.ofPregen(Pregen.fromBytes(buf));
-            case JIGSAW -> ConstructionType.ofJigsaw(JigsawParams.fromBytes(buf));
-            case SINGLE -> ConstructionType.ofSingleStructure(SingleStructure.fromBytes(buf));
-        };
-    }
-
-    public void toBytes(FriendlyByteBuf buf) {
-        if (prebuilt.isPresent()) {
-            TypeID.PREBUILT.write(prebuilt.get(), buf);
-        } else if (pregen.isPresent()) {
-            TypeID.PREGEN.write(pregen.get(), buf);
-        } else if (jigsaw.isPresent()) {
-            TypeID.JIGSAW.write(jigsaw.get(), buf);
-        } else if (singleStructure.isPresent()) {
-            TypeID.SINGLE.write(singleStructure.get(), buf);
-        } else {
-            throw new IllegalStateException("none of prebuilt/pregen/jigsaw/single-structure present!");
-        }
-    }
-
     enum TypeID {
         PREBUILT,
         PREGEN,
         JIGSAW,
         SINGLE;
 
-        public void write(INetworkWritable obj, FriendlyByteBuf buf) {
+        public <T extends INetworkWritable<T>> void write(T obj, RegistryFriendlyByteBuf buf) {
             buf.writeEnum(this);
-            obj.toBytes(buf);
+            obj.streamCodec().encode(buf, obj);
         }
     }
 }
