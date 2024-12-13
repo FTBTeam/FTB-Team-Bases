@@ -76,6 +76,7 @@ Several fields will need to be customised:
 * `preview_image` is a resource location for a texture to display in the selection GUI. Typically, you'd use a screenshot of the base.
 * `private` determines whether the base will be created in the shared dimension (`ftbteambases:bases` by default), or if a new dynamic dimension should be created for the base.
   * When `private` is true, the `dimension_type` field specifies the [dimension type](https://minecraft.fandom.com/wiki/Custom_dimension#Dimension_type) for the new dimension. `ftbteambases:default` works in many cases, but you're free to use a custom type here.
+  * When `private` is false, the `dimension_id` field specifies the dimension which will be used. By default, this `ftbteambases:bases` (a void-world datapack dimension supplied by this mod); you could change this to e.g. `minecraft:overworld` here
 * `spawn_offset` is an offset for the default player spawn position; defaults to [0,0,0] if omitted.
   * The default position is typically at the center of the region(s), and at a Y position of the world's surface.
   * In the third example above, the player would spawn on top of the village house roof if this offset were not specified. 
