@@ -37,6 +37,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -162,7 +163,7 @@ public class FTBTeamBases {
                 if (DimensionUtils.isVoidChunkGen(s.getChunkSource().getGenerator())) {
                     VoidTeamDimensionMessage.syncTo(player);
                 }
-                switchGameMode(player, s.dimension());
+                switchGameMode(player, null, s.dimension());
             }
 
         }
@@ -175,33 +176,34 @@ public class FTBTeamBases {
                 && !BaseInstanceManager.get().isPlayerKnown(player);
     }
 
-    private static void playerChangedDimension(ServerPlayer player, ResourceKey<Level> oldLevel, ResourceKey<Level> newLevel) {
-        switchGameMode(player, newLevel);
+    private static void playerChangedDimension(ServerPlayer player, ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
+        switchGameMode(player, oldDim, newDim);
 
-        handleNetherTravel(player, oldLevel, newLevel);
+        handleNetherTravel(player, oldDim, newDim);
     }
 
-    private static void switchGameMode(ServerPlayer player, ResourceKey<Level> newLevel) {
+    private static void switchGameMode(ServerPlayer player, @Nullable ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
         GameType lobbyGameMode = ServerConfig.LOBBY_GAME_MODE.get();
+        ResourceKey<Level> lobby = ServerConfig.lobbyDimension().orElse(OVERWORLD);
 
-        if (newLevel.equals(OVERWORLD) && player.gameMode.getGameModeForPlayer() != lobbyGameMode && player.gameMode.getGameModeForPlayer() != GameType.CREATIVE) {
+        if (newDim.equals(lobby) && player.gameMode.getGameModeForPlayer() != lobbyGameMode && player.gameMode.getGameModeForPlayer() != GameType.CREATIVE) {
             player.setGameMode(lobbyGameMode);
-        } else if (!newLevel.equals(OVERWORLD) && player.gameMode.getGameModeForPlayer() == lobbyGameMode) {
+        } else if (lobby.equals(oldDim) && !newDim.equals(lobby) && player.gameMode.getGameModeForPlayer() == lobbyGameMode) {
             player.setGameMode(GameType.SURVIVAL);
         }
     }
 
-    private static void handleNetherTravel(ServerPlayer player, ResourceKey<Level> oldLevel, ResourceKey<Level> newLevel) {
+    private static void handleNetherTravel(ServerPlayer player, ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
         if (player.isOnPortalCooldown()) {
             var mgr = BaseInstanceManager.get(player.server);
 
-            if (newLevel.equals(NETHER)) {
+            if (newDim.equals(NETHER)) {
                 // travelling to the Nether: if from our team dimension, store the player's location (in the from-dimension!) to later return there
-                BlockPos portalPos = oldLevel.location().getNamespace().equals(FTBTeamBases.MOD_ID) ?
+                BlockPos portalPos = oldDim.location().getNamespace().equals(FTBTeamBases.MOD_ID) ?
                         BlockPos.containing(player.xOld, player.yOld, player.zOld) :
                         null;
                 mgr.setPlayerNetherPortalLoc(player, portalPos);
-            } else if (oldLevel.equals(NETHER) && newLevel.equals(OVERWORLD)) {
+            } else if (oldDim.equals(NETHER) && newDim.equals(OVERWORLD)) {
                 // returning from the Nether: intercept this and send the player to their base portal instead
                 //   (or the base spawn point if for some reason we don't have their portal return point stored)
                 mgr.getBaseForPlayer(player).ifPresentOrElse(base -> {
