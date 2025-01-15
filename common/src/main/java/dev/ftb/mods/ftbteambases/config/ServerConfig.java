@@ -28,6 +28,8 @@ public interface ServerConfig {
             .comment("When set to true, the player's inventory will be cleared when leaving a team");
     BooleanValue TEAM_NETHER_ENTRY_POINT = GENERAL.addBoolean("team_nether_entry_point", true)
             .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
+    IntValue BASE_SEPARATION = GENERAL.addInt("base_separation", 4, 0, 16)
+            .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())

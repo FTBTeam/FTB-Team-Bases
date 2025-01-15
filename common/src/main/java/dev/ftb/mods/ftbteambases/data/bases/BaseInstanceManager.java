@@ -170,11 +170,12 @@ public class BaseInstanceManager extends SavedData {
         RegionCoords genPos = storedGenPos.computeIfAbsent(dimensionId, k -> new RegionCoords(0, 0));
         int zOffset = Math.max(storedZoffset.computeIfAbsent(dimensionId, k -> baseSize.z()), baseSize.z());
         storedZoffset.put(dimensionId, zOffset);
+        int separation = ServerConfig.BASE_SEPARATION.get();
         // move east on the X axis
-        RegionCoords nextPos = genPos.offsetBy(baseSize.x() + 2, 0);
+        RegionCoords nextPos = genPos.offsetBy(baseSize.x() + separation, 0);
         if (nextPos.x() > MAX_REGION_X) {
             // return to X=0 and move south on the Z axis
-            nextPos = new RegionCoords(0, nextPos.z() + zOffset + 2);
+            nextPos = new RegionCoords(0, nextPos.z() + zOffset + separation);
         }
         storedGenPos.put(dimensionId, nextPos);
         setDirty();

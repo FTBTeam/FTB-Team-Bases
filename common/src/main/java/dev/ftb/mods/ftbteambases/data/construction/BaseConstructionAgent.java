@@ -5,6 +5,7 @@ import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
+import dev.ftb.mods.ftbteambases.events.BaseCreatedEvent;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.PlayerTeam;
@@ -63,6 +64,8 @@ public class BaseConstructionAgent {
                         }
                         FTBTeamBases.LOGGER.info("team base created for player id {}, party id = {}, dim id = {}, type = {}",
                                 playerId, party.getId(), destLevel.dimension().location(), baseDefinition.id());
+
+                        BaseCreatedEvent.CREATED.invoker().created(BaseInstanceManager.get(server), player, party);
                     } catch (IllegalStateException e) {
                         if (player != null) {
                             player.displayClientMessage(Component.literal("can't create party team for you! " + e.getMessage()), false);
