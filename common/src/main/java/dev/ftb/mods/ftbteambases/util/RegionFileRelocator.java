@@ -89,6 +89,10 @@ public class RegionFileRelocator {
         return started;
     }
 
+    public Map<Path, RelocationData> getRelocationData() {
+        return relocationData;
+    }
+
     public void start(BooleanConsumer onCompleted) {
         if (started) {
             throw new IllegalStateException("relocator already started!");
@@ -255,6 +259,6 @@ public class RegionFileRelocator {
         FTBTeamBases.LOGGER.error("{}: " + msg, e.getClass().getSimpleName(), args);
     }
 
-    private record RelocationData(RegionCoords orig, XZ regionOffset) {
+    public record RelocationData(RegionCoords orig, XZ regionOffset) {
     }
 }
