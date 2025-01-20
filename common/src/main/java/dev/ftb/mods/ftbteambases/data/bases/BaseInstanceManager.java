@@ -11,6 +11,7 @@ import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
+import dev.ftb.mods.ftbteambases.events.BaseArchivedEvent;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.NetherPortalPlacement;
 import dev.ftb.mods.ftbteambases.util.RegionCoords;
@@ -265,7 +266,11 @@ public class BaseInstanceManager extends SavedData {
     }
 
     public Optional<LiveBaseDetails> getBaseForTeam(Team team) {
-        return Optional.ofNullable(liveBases.get(team.getTeamId()));
+        return getBaseForTeamId(team.getTeamId());
+    }
+
+    public Optional<LiveBaseDetails> getBaseForTeamId(UUID id) {
+        return Optional.ofNullable(liveBases.get(id));
     }
 
     public boolean teleportToLobby(ServerPlayer serverPlayer) {
@@ -282,6 +287,7 @@ public class BaseInstanceManager extends SavedData {
             archivedBases.put(name, new ArchivedBaseDetails(name, base.extents(), base.dimension(), base.spawnPos(), team.getOwner(), Util.getEpochMillis()));
             nextArchiveId++;
             setDirty();
+            BaseArchivedEvent.ARCHIVED.invoker().deleted(this, team);
         }
     }
 
