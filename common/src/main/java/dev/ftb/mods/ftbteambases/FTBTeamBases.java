@@ -222,16 +222,18 @@ public class FTBTeamBases {
                 // paste the lobby structure into the lobby level (typically the overworld, but can be changed in config)
                 StructureTemplate lobby = serverLevel.getStructureManager().getOrCreate(lobbyLocation);
                 StructurePlaceSettings placeSettings = DimensionUtils.makePlacementSettings(lobby);
-                BlockPos spawnPos = DimensionUtils.locateSpawn(lobby).orElse(BlockPos.ZERO);
-                BlockPos lobbyPos = BlockPos.ZERO.offset(-(lobby.getSize().getX() / 2), ServerConfig.LOBBY_Y_POS.get(), -(lobby.getSize().getZ() / 2));
-                BlockPos playerSpawn = spawnPos.offset(lobbyPos.getX(), lobbyPos.getY(), lobbyPos.getZ());
 
+                BlockPos lobbyPos = BlockPos.ZERO.offset(-(lobby.getSize().getX() / 2), ServerConfig.LOBBY_Y_POS.get(), -(lobby.getSize().getZ() / 2));
                 lobby.placeInWorld(serverLevel, lobbyPos, lobbyPos, placeSettings, serverLevel.random, Block.UPDATE_ALL);
 
-                mgr.setLobbySpawnPos(playerSpawn);
-                mgr.setLobbyCreated(true);
+                BlockPos relativePos = DimensionUtils.locateSpawn(lobby).orElse(BlockPos.ZERO);
+                BlockPos playerSpawn = lobbyPos.offset(relativePos.getX(), relativePos.getY(), relativePos.getZ());
 
+                mgr.setLobbySpawnPos(playerSpawn);
                 serverLevel.removeBlock(playerSpawn, false);
+                serverLevel.setDefaultSpawnPos(playerSpawn, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
+
+                mgr.setLobbyCreated(true);
 
                 LOGGER.info("Spawned lobby structure @ {} / {}", serverLevel.dimension().location(), lobbyPos);
             });
