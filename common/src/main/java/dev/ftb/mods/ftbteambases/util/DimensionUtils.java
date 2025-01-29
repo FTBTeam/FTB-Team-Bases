@@ -32,6 +32,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -104,15 +105,19 @@ public class DimensionUtils {
         ).orElse(Stream.of());
     }
 
-    public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, BlockPos destPos) {
+    public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos) {
+        return teleport(player, key, destPos, player.getYRot());
+    }
+
+    public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos, float yRot) {
         ServerLevel level = player.server.getLevel(key);
 
         if (level != null) {
-            if (key.equals(Level.OVERWORLD)) {
+            if (key.equals(ServerConfig.lobbyDimension().orElse(Level.OVERWORLD))) {
                 BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
                 BlockPos pos = Objects.requireNonNullElse(destPos, lobbySpawnPos);
 
-                doTeleport(player, level, pos);
+                doTeleport(player, level, pos, yRot);
             } else {
                 Vec3 vec;
                 if (destPos == null) {
@@ -129,7 +134,7 @@ public class DimensionUtils {
                     vec = Vec3.atCenterOf(destPos);
                 }
 
-                doTeleport(player, level, BlockPos.containing(vec.x, vec.y, vec.z));
+                doTeleport(player, level, BlockPos.containing(vec.x, vec.y, vec.z), yRot);
             }
             return true;
         } else {
@@ -138,11 +143,11 @@ public class DimensionUtils {
         }
     }
 
-    private static void doTeleport(ServerPlayer player, ServerLevel level, BlockPos pos) {
+    private static void doTeleport(ServerPlayer player, ServerLevel level, BlockPos pos, float yRot) {
         ChunkPos chunkpos = new ChunkPos(pos);
         level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
         player.stopRiding();
-        player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, player.getYRot(), player.getXRot());
+        player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, yRot, player.getXRot());
 
         FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().getName(), pos, level.dimension().location());
     }

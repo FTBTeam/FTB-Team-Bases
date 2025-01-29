@@ -264,7 +264,7 @@ public class BaseInstanceManager extends SavedData {
 
     public boolean teleportToLobby(ServerPlayer serverPlayer) {
         ResourceKey<Level> destLevel = ServerConfig.lobbyDimension().orElse(Level.OVERWORLD);
-        return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos);
+        return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
     }
 
     public void deleteAndArchive(MinecraftServer server, Team team) {

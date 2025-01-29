@@ -41,6 +41,8 @@ public interface ServerConfig {
             .comment("Position at which new players spawn. Only used if the lobby structure comes from a pregenerated region!");
     StringValue LOBBY_DIMENSION = LOBBY.addString("lobby_dimension", "minecraft:overworld")
             .comment("Dimension ID of the level in which the lobby is created. This *must* be a static pre-existing dimension, not a dynamically created one! New players will be automatically teleported to this dimension the first time they connect to the server. This setting should be defined in default config so the server has it before any levels are created - do NOT modify this on existing worlds!");
+    DoubleValue LOBBY_PLAYER_YAW = LOBBY.addDouble("lobby_player_yaw", 0.0, 0.0, 360.0)
+            .comment("Player Y-axis rotation when initially spawning in, or returning to, the lobby. (0 = south, 90 = west, 180 = north, 270 = east)");
 
     SNBTConfig WORLDGEN = CONFIG.addGroup("worldgen");
     EnumValue<ChunkGenerators> CHUNK_GENERATOR = WORLDGEN.addEnum("chunk_generator", ChunkGenerators.NAME_MAP)
@@ -62,7 +64,7 @@ public interface ServerConfig {
     BooleanValue ALLOW_NETHER_PORTALS = NETHER.addBoolean("allow_nether_portals", true)
             .comment("When set to true, nether portals may be constructed in team dimensions");
     BooleanValue TEAM_SPECIFIC_NETHER_ENTRY_POINT = NETHER.addBoolean("team_specific_nether_entry_point", true)
-            .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
+            .comment("If true, then players going to the Nether via Nether Portal will be sent to a random (but deterministic for the team) position in the Nether");
 
     static Optional<ResourceLocation> lobbyLocation() {
         if (LOBBY_STRUCTURE_LOCATION.get().isEmpty()) {
