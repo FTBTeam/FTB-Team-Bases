@@ -43,6 +43,8 @@ public interface ServerConfig {
             .comment("Position at which new players spawn. Only used if the lobby structure comes from a pregenerated region!");
     StringValue LOBBY_DIMENSION = LOBBY.addString("lobby_dimension", "minecraft:overworld")
             .comment("Dimension ID of the level in which the lobby is created. This *must* be a static pre-existing dimension, not a dynamically created one! New players will be automatically teleported to this dimension the first time they connect to the server. This setting should be defined in default config so the server has it before any levels are created - do NOT modify this on existing worlds!");
+    DoubleValue LOBBY_PLAYER_YAW = LOBBY.addDouble("lobby_player_yaw", 0.0, 0.0, 360.0)
+            .comment("Player Y-axis rotation when initially spawning in, or returning to, the lobby. (0 = south, 90 = west, 180 = north, 270 = east)");
 
     SNBTConfig WORLDGEN = CONFIG.addGroup("worldgen");
     EnumValue<ChunkGenerators> CHUNK_GENERATOR = WORLDGEN.addEnum("chunk_generator", ChunkGenerators.NAME_MAP)
@@ -64,7 +66,7 @@ public interface ServerConfig {
     IntValue MIN_DIST_FROM_ORIGIN = NETHER.addInt("min_dist_from_origin", 1000, 0, Integer.MAX_VALUE)
             .comment("When 'team_specific_nether_entry_point' is true, this is the minimum distance from XZ=(0,0) this spot can be");
     IntValue MAX_DIST_FROM_ORIGIN = NETHER.addInt("max_dist_from_origin", 25000, 1000, Integer.MAX_VALUE)
-            .comment("When 'team_specific_nether_entry_point' is true, this is the maximum distance from XZ=(0,0) this spot can be. Must be greater than 'max_dist_from_origin'.");
+            .comment("When 'team_specific_nether_entry_point' is true, this is the maximum distance from XZ=(0,0) this spot can be. Must be greater than 'min_dist_from_origin'.");
 
     static Optional<ResourceLocation> lobbyLocation() {
         try {
