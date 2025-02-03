@@ -153,8 +153,9 @@ public class FTBTeamBases {
                 // Send new players to the lobby, and set their respawn position there
                 BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
                 if (player.getRespawnPosition() == null || !player.getRespawnPosition().equals(lobbySpawnPos)) {
-                    player.setRespawnPosition(destLevel.dimension(), lobbySpawnPos, -180, true, false);
-                    player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(), -180F, -10F);
+                    player.setRespawnPosition(destLevel.dimension(), lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), true, false);
+                    player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(),
+                            ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), -10F);
                 }
                 BaseInstanceManager.get().addKnownPlayer(player);
             }
