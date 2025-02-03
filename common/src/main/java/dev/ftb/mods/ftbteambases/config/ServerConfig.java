@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 
@@ -67,6 +68,10 @@ public interface ServerConfig {
             .comment("When 'team_specific_nether_entry_point' is true, this is the minimum distance from XZ=(0,0) this spot can be");
     IntValue MAX_DIST_FROM_ORIGIN = NETHER.addInt("max_dist_from_origin", 25000, 1000, Integer.MAX_VALUE)
             .comment("When 'team_specific_nether_entry_point' is true, this is the maximum distance from XZ=(0,0) this spot can be. Must be greater than 'min_dist_from_origin'.");
+    BooleanValue USE_CUSTOM_PORTAL_Y_POS = NETHER.addBoolean("use_custom_portal_y", false)
+            .comment("If true, use the value 'portal_y_pos' for the Y position of the Nether entry position for players. If false, use the player's current Y position.");
+    IntValue CUSTOM_PORTAL_Y_POS = NETHER.addInt("portal_y_pos", 0)
+            .comment("See 'use_custom_portal_y'.");
 
     static Optional<ResourceLocation> lobbyLocation() {
         try {
@@ -94,6 +99,10 @@ public interface ServerConfig {
             FTBTeamBases.LOGGER.error("invalid lobby spawn pos! expected 3 integers, got {}", pos.length);
             return Optional.empty();
         }
+    }
+
+    static int getNetherPortalYPos(Player player) {
+        return USE_CUSTOM_PORTAL_Y_POS.get() ? CUSTOM_PORTAL_Y_POS.get() : player.blockPosition().getY();
     }
 
     enum FeatureGeneration {

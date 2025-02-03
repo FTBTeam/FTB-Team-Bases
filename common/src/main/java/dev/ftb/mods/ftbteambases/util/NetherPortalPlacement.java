@@ -88,7 +88,7 @@ public class NetherPortalPlacement {
         }
         int dist = min + rand.nextInt(max - min);
 
-        return BlockPos.containing(Math.cos(angle) * dist, serverPlayer.blockPosition().getY(), Math.sin(angle) * dist);
+        return BlockPos.containing(Math.cos(angle) * dist, ServerConfig.getNetherPortalYPos(serverPlayer), Math.sin(angle) * dist);
     }
 
     private static UUID getPlayerTeamId(UUID playerId) {
