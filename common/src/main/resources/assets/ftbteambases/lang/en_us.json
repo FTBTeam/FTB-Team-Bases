@@ -21,6 +21,7 @@
   "ftbteambases.message.player_in_party": "Archived base owner '%s' is in a party. They must leave first!",
   "ftbteambases.message.missing_dimension": "Can't find dimension %s!",
   "ftbteambases.message.no_dimensions": "No team dimensions!",
+  "ftbteambases.message.not_nether_team_base": "Team nether entry points are not enabled in this instance",
   "ftbteambases.gui.show": "Show",
   "ftbteambases.gui.restore": "Restore",
   "ftbteambases.gui.purge": "Purge",

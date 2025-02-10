@@ -23,7 +23,9 @@ import java.util.UUID;
 
 public class NetherPortalPlacement {
     /**
-     * Hook for {@link dev.ftb.mods.ftbteambases.mixin.NetherPortalBlockMixin}
+     * Hook for {@link dev.ftb.mods.ftbteambases.mixin.NetherPortalBlockMixin}, also called via the
+     * nether-visit command.
+     *
      * @param serverLevel level the portal is in
      * @param entity the entity entering the portal
      * @param srcPos blockpos at which the portal is entered, or null if due to using the nether-visit command

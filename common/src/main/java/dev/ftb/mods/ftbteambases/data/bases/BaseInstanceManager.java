@@ -46,6 +46,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static dev.ftb.mods.ftbteambases.command.CommandUtils.DIM_MISSING;
+import static dev.ftb.mods.ftbteambases.command.CommandUtils.NOT_TEAM_NETHER;
 
 /**
  * Keeps track of live and archived base instances. Base details (location etc.) are tracked by team UUID.
@@ -221,13 +222,21 @@ public class BaseInstanceManager extends SavedData {
         return false;
     }
 
-    public boolean teleportToNether(ServerPlayer player, Team team) throws CommandSyntaxException {
+    public boolean teleportToNether(ServerPlayer player) throws CommandSyntaxException {
+        if (!ServerConfig.TEAM_SPECIFIC_NETHER_ENTRY_POINT.get()) {
+            throw NOT_TEAM_NETHER.create();
+        }
+
         ServerLevel nether = player.getServer().getLevel(Level.NETHER);
         if (nether == null) {
             throw DIM_MISSING.create(Level.NETHER.location().toString());
         }
 
         DimensionTransition transition = NetherPortalPlacement.getTeamEntryPoint(nether, player, null);
+        if (transition == null) {
+            return false;
+        }
+
         BlockPos pos = BlockPos.containing(transition.pos().x(), transition.pos().y(), transition.pos().z());
 
         ChunkPos chunkpos = new ChunkPos(pos);

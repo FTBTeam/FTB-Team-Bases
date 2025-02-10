@@ -2,6 +2,7 @@ package dev.ftb.mods.ftbteambases.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
@@ -40,6 +41,8 @@ public class CommandUtils {
             Component.translatable("ftbteambases.message.purge_not_found", object));
     public static final DynamicCommandExceptionType DIM_MISSING = new DynamicCommandExceptionType(object ->
             Component.translatable("ftbteambases.message.missing_dimension", object));
+    public static final SimpleCommandExceptionType NOT_TEAM_NETHER = new SimpleCommandExceptionType(
+            Component.translatable("ftbteambases.message.not_nether_team_base"));
 
     public static void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context, Commands.CommandSelection selection) {
         dispatcher.register(Commands.literal(FTBTeamBases.MOD_ID)

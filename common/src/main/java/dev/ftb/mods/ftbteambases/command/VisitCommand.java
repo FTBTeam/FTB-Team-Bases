@@ -83,7 +83,7 @@ public class VisitCommand {
         ServerPlayer player = source.getPlayerOrException();
         BaseInstanceManager mgr = BaseInstanceManager.get(source.getServer());
         boolean res = gotoNether ?
-                mgr.teleportToNether(player, team) :
+                mgr.teleportToNether(player) :
                 mgr.teleportToBaseSpawn(player, team.getTeamId());
 
         if (!res) {
