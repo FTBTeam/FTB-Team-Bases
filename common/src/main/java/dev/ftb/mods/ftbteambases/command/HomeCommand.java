@@ -2,6 +2,7 @@ package dev.ftb.mods.ftbteambases.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
@@ -14,6 +15,7 @@ import static net.minecraft.commands.Commands.literal;
 public class HomeCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("home")
+                .requires(source -> source.hasPermission(ServerConfig.HOME_CMD_PERMISSION_LEVEL.get()))
                 .executes(ctx -> doGoHome(ctx.getSource()));
     }
 
