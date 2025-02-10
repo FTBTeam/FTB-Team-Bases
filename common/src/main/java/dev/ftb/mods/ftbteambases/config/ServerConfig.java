@@ -31,8 +31,8 @@ public interface ServerConfig {
             .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
     IntValue BASE_SEPARATION = GENERAL.addInt("base_separation", 4, 0, 16)
             .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
-    IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 1, 1, 4)
-            .comment("Permission level required to use the '/ftbteambases home' command");
+    IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 0, 0, 4)
+            .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
