@@ -112,7 +112,7 @@ publishMods {
         }
     }
 
-    def fabricOptions = createOptions("fabric")
+//    def fabricOptions = createOptions("fabric")
     def neoForgeOptions = createOptions("neoforge")
 
     def curseForgeOptions = curseforgeOptions {
@@ -121,14 +121,14 @@ publishMods {
         javaVersions.add(JavaVersion.VERSION_21)
     }
 
-    curseforge("curseforgeFabric") {
-        from(curseForgeOptions, fabricOptions)
-        projectId = curseforge_id
-        requires('architectury-api')
-        requires('fabric-api')
-        requires('ftb-library-fabric')
-        requires('ftb-teams-fabric')
-    }
+//    curseforge("curseforgeFabric") {
+//        from(curseForgeOptions, fabricOptions)
+//        projectId = curseforge_id
+//        requires('architectury-api')
+//        requires('fabric-api')
+//        requires('ftb-library-fabric')
+//        requires('ftb-teams-fabric')
+//    }
 
     curseforge("curseforgeNeoForge") {
         from(curseForgeOptions, neoForgeOptions)
