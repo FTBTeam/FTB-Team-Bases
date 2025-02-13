@@ -56,6 +56,7 @@ public class CommandUtils {
                 .then(VisitCommand.registerNether())
                 .then(ArchiveCommand.register())
                 .then(PurgeCommand.register())
+                .then(SetLobbyPosCommand.register())
         );
     }
 
