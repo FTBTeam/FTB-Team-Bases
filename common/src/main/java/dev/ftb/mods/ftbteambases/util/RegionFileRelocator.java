@@ -42,7 +42,6 @@ public class RegionFileRelocator {
     @Nullable
     private final UUID playerId;
     private boolean started = false;
-    private boolean chunkNBTscan = true;
 
     public static RegionFileRelocator create(CommandSourceStack source, String templateId, ResourceKey<Level> dimensionKey, RelocatorTracker.Ticker ticker, XZ regionOffset, boolean force) throws IOException {
         return RelocatorTracker.INSTANCE.add(new RegionFileRelocator(source, templateId, dimensionKey, regionOffset, force), ticker);
@@ -92,17 +91,6 @@ public class RegionFileRelocator {
 
     public Map<Path, RelocationData> getRelocationData() {
         return relocationData;
-    }
-
-    /**
-     * Disable chunk NBT scanning for much faster relocation; <strong>only do this if you know for certain that there
-     * are no block entities which store absolute block positions!</strong>
-     *
-     * @return the relocator itself
-     */
-    public RegionFileRelocator noChunkNBTscan() {
-        chunkNBTscan = false;
-        return this;
     }
 
     public void start(BooleanConsumer onCompleted) {
@@ -194,7 +182,7 @@ public class RegionFileRelocator {
     }
 
     private boolean updateRegionChunkData(RegionFileStorage storage, RegionCoords r, int xOff, int zOff) {
-        if (!chunkNBTscan || xOff == 0 && zOff == 0) {
+        if (xOff == 0 && zOff == 0) {
             return true; // trivial case
         }
 
