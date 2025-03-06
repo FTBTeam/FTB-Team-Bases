@@ -99,7 +99,7 @@ public class RegionFileRelocator {
         }
 
         // called from main thread
-        Path workDir = destDir.resolve("worktmp-" + Thread.currentThread().getId());
+        Path workDir = destDir.resolve("worktmp-" + Thread.currentThread().threadId());
         try {
             if (!force) {
                 // ensure none of the dest region MCA files exist yet

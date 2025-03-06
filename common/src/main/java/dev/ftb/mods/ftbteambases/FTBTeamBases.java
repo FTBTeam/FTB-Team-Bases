@@ -200,9 +200,10 @@ public class FTBTeamBases {
 
             if (newDim.equals(NETHER)) {
                 // travelling to the Nether: if from our team dimension, store the player's location (in the from-dimension!) to later return there
-                BlockPos portalPos = oldDim.location().getNamespace().equals(FTBTeamBases.MOD_ID) ?
-                        BlockPos.containing(player.xOld, player.yOld, player.zOld) :
-                        null;
+                BlockPos portalPos = mgr.getBaseForPlayer(player)
+                        .filter(base -> oldDim.equals(base.dimension()))
+                        .map(base -> BlockPos.containing(player.xOld, player.yOld, player.zOld))
+                        .orElse(null);
                 mgr.setPlayerNetherPortalLoc(player, portalPos);
             } else if (oldDim.equals(NETHER) && newDim.equals(OVERWORLD)) {
                 // returning from the Nether: intercept this and send the player to their base portal instead
