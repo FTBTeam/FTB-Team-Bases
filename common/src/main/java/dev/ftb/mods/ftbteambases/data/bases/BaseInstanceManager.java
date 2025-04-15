@@ -355,6 +355,7 @@ public class BaseInstanceManager extends SavedData {
 
     public void setLobbySpawnPos(BlockPos lobbySpawnPos) {
         this.lobbySpawnPos = lobbySpawnPos;
+        FTBTeamBases.LOGGER.info("Set lobby spawn pos to {}", lobbySpawnPos);
         setDirty();
     }
 

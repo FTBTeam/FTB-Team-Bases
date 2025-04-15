@@ -156,11 +156,9 @@ public class FTBTeamBases {
                 BaseInstanceManager.get().addKnownPlayer(player);
             }
 
-            if (player.level() instanceof ServerLevel s) {  // should always be the case!
-                if (DimensionUtils.isVoidChunkGen(s.getChunkSource().getGenerator())) {
-                    VoidTeamDimensionMessage.syncTo(player);
-                }
-                switchGameMode(player, s.dimension());
+            if (DimensionUtils.isVoidChunkGen(serverLevel.getChunkSource().getGenerator())) {
+                VoidTeamDimensionMessage.syncTo(player);
+                switchGameMode(player, level.dimension());
             }
 
         }

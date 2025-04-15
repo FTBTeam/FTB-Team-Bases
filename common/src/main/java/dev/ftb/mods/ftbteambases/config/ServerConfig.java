@@ -65,6 +65,10 @@ public interface ServerConfig {
             .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
 
     static Optional<ResourceLocation> lobbyLocation() {
+        if (LOBBY_STRUCTURE_LOCATION.get().isEmpty()) {
+            return Optional.empty();
+        }
+
         try {
             return Optional.of(new ResourceLocation(LOBBY_STRUCTURE_LOCATION.get()));
         } catch (ResourceLocationException ignored) {
