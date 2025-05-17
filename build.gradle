@@ -52,17 +52,23 @@ allprojects {
         }
 
         maven {
-            url "https://maven.saps.dev/minecraft"
+            url "https://maven.ftb.dev/minecraft"
             content {
                 includeGroup "dev.latvian.mods"
                 includeGroup "dev.ftb.mods"
             }
         }
         maven {
-            url "https://maven.saps.dev/snapshots"
+            url "https://maven.ftb.dev/snapshots"
             content {
                 includeGroup "dev.latvian.mods"
                 includeGroup "dev.ftb.mods"
+            }
+        }
+        maven {
+            url "https://maven.latvian.dev/releases"
+            content {
+                includeGroup "dev.latvian.mods"
             }
         }
     }
@@ -79,16 +85,6 @@ allprojects {
                     credentials {
                         username = ftbPublishing.ftbUser
                         password = ftbPublishing.ftbToken
-                    }
-                }
-            }
-
-            if (ftbPublishing.sapsToken) {
-                maven {
-                    url ftbPublishing.sapsURL
-                    credentials {
-                        username = ftbPublishing.sapsUser
-                        password = ftbPublishing.sapsToken
                     }
                 }
             }
