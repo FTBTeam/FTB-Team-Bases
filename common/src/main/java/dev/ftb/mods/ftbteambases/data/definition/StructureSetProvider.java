@@ -7,15 +7,19 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 @FunctionalInterface
 public interface StructureSetProvider {
-    Optional<ResourceLocation> structureSetId();
+    List<ResourceLocation> structureSetIds();
 
     static Stream<Holder<StructureSet>> getStructureSets(HolderLookup<StructureSet> holderLookup, StructureSetProvider provider) {
-        ResourceLocation setId = provider.structureSetId().orElse(BaseDefinition.DEFAULT_STRUCTURE_SET);
-        return holderLookup.getOrThrow(TagKey.create(Registries.STRUCTURE_SET, setId)).stream();
+        List<Holder<StructureSet>> res = new ArrayList<>();
+        provider.structureSetIds().stream()
+                .map(id -> holderLookup.getOrThrow(TagKey.create(Registries.STRUCTURE_SET, id)))
+                .forEach(l -> l.forEach(res::add));
+        return res.stream();
     }
 }

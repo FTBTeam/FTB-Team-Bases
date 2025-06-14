@@ -2,12 +2,12 @@ package dev.ftb.mods.ftbteambases.data.definition;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.List;
 import java.util.Optional;
 
 public record PrebuiltStructure(ResourceLocation startStructure, Optional<ResourceLocation> structureSetId,
@@ -31,5 +31,10 @@ public record PrebuiltStructure(ResourceLocation startStructure, Optional<Resour
     @Override
     public StreamCodec<RegistryFriendlyByteBuf, PrebuiltStructure> streamCodec() {
         return STREAM_CODEC;
+    }
+
+    @Override
+    public List<ResourceLocation> structureSetIds() {
+        return structureSetId.map(List::of).orElse(List.of());
     }
 }
