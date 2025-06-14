@@ -7,6 +7,7 @@ import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.bases.LiveBaseDetails;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
+import dev.ftb.mods.ftbteambases.data.definition.StructureSetProvider;
 import dev.ftb.mods.ftbteambases.worldgen.chunkgen.VoidChunkGenerator;
 import dev.ftb.mods.ftbteambases.worldgen.processor.WaterLoggingFixProcessor;
 import net.minecraft.core.BlockPos;
@@ -97,12 +98,17 @@ public class DimensionUtils {
 
     @NotNull
     public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
-        return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId).map(baseTemplate ->
-                baseTemplate.constructionType().prebuilt().map(prebuilt -> {
-                    ResourceLocation setId = prebuilt.structureSetId().orElse(BaseDefinition.DEFAULT_STRUCTURE_SET);
-                    return holderLookup.getOrThrow(TagKey.create(Registries.STRUCTURE_SET, setId)).stream();
-                }).orElse(Stream.of())
-        ).orElse(Stream.of());
+        return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId)
+                .map(baseTemplate -> getHolderStream(holderLookup, baseTemplate))
+                .orElse(Stream.of());
+    }
+
+    private static @NotNull Stream<Holder<StructureSet>> getHolderStream(HolderLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {
+        return baseTemplate.constructionType().prebuilt().map(prebuilt ->
+                StructureSetProvider.getStructureSets(holderLookup, prebuilt)
+        ).orElse(baseTemplate.constructionType().pregen().map(pregen ->
+                StructureSetProvider.getStructureSets(holderLookup, pregen)
+        ).orElse(Stream.empty()));
     }
 
     public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos) {

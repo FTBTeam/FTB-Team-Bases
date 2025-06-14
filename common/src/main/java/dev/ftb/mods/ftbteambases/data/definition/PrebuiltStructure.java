@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Optional;
 
 public record PrebuiltStructure(ResourceLocation startStructure, Optional<ResourceLocation> structureSetId,
-                                int height) implements INetworkWritable<PrebuiltStructure> {
+                                int height) implements INetworkWritable<PrebuiltStructure>, StructureSetProvider {
     public static final Codec<PrebuiltStructure> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             ResourceLocation.CODEC.fieldOf("start_structure")
                     .forGetter(PrebuiltStructure::startStructure),
