@@ -14,13 +14,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Vec3i;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -96,20 +94,27 @@ public class DimensionUtils {
         serverPlayer.inventoryMenu.slotsChanged(serverPlayer.getInventory());
     }
 
-    @NotNull
-    public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
+    public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup.RegistryLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
         return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId)
                 .map(baseTemplate -> getHolderStream(holderLookup, baseTemplate))
                 .orElse(Stream.of());
     }
 
-    private static @NotNull Stream<Holder<StructureSet>> getHolderStream(HolderLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {
-        return baseTemplate.constructionType().prebuilt().map(prebuilt ->
-                StructureSetProvider.getStructureSets(holderLookup, prebuilt)
-        ).orElse(baseTemplate.constructionType().pregen().map(pregen ->
-                StructureSetProvider.getStructureSets(holderLookup, pregen)
-        ).orElse(Stream.empty()));
+
+    @NotNull
+    private static Stream<Holder<StructureSet>> getHolderStream(HolderLookup.RegistryLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {
+        var construction = baseTemplate.constructionType();
+
+        if (construction.prebuilt().isPresent()) {
+            return StructureSetProvider.getStructureSets(holderLookup, construction.prebuilt().get());
+        } else if (construction.pregen().isPresent()) {
+            return StructureSetProvider.getStructureSets(holderLookup, construction.pregen().get());
+        } else {
+            return Stream.empty();
+        }
     }
+
+
 
     public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos) {
         return teleport(player, key, destPos, player.getYRot());

@@ -1,14 +1,12 @@
 package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionProvider;
-import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -22,7 +20,6 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Basically the vanilla NoiseBasedChunkGenerator, with an optional initial start structure.  Can be configured to use
@@ -80,9 +77,15 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
 
     @Override
     public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> holderLookup, RandomState randomState, long seed) {
-        return ChunkGeneratorStructureState.createForFlat(randomState, seed, this.biomeSource,
-                DimensionUtils.possibleStructures(holderLookup, baseTemplateId));
+        return ChunkGeneratorStructureState.createForNormal(
+                randomState,
+                seed,
+                this.biomeSource,
+                holderLookup
+        );
     }
+
+
 
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
