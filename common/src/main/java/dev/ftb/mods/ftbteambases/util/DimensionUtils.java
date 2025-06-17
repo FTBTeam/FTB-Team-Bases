@@ -100,7 +100,6 @@ public class DimensionUtils {
                 .orElse(Stream.of());
     }
 
-
     @NotNull
     private static Stream<Holder<StructureSet>> getHolderStream(HolderLookup.RegistryLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {
         var construction = baseTemplate.constructionType();
@@ -113,8 +112,6 @@ public class DimensionUtils {
             return Stream.empty();
         }
     }
-
-
 
     public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos) {
         return teleport(player, key, destPos, player.getYRot());
@@ -138,7 +135,7 @@ public class DimensionUtils {
                         vec = vec.add(new Vec3(respawnPosition.getX(), respawnPosition.getY(), respawnPosition.getZ()));
                     } else {
                         BlockPos levelSharedSpawn = BaseInstanceManager.get(player.server).getBaseForPlayer(player)
-                                        .map(LiveBaseDetails::spawnPos).orElse(BlockPos.ZERO);
+                                .map(LiveBaseDetails::spawnPos).orElse(BlockPos.ZERO);
                         vec = vec.add(new Vec3(levelSharedSpawn.getX(), levelSharedSpawn.getY(), levelSharedSpawn.getZ()));
                     }
                 } else {
