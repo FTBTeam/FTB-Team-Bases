@@ -85,8 +85,6 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         );
     }
 
-
-
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
         return CODEC;
