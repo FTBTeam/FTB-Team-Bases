@@ -7,19 +7,18 @@ import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.bases.LiveBaseDetails;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
+import dev.ftb.mods.ftbteambases.data.definition.StructureSetProvider;
 import dev.ftb.mods.ftbteambases.worldgen.chunkgen.VoidChunkGenerator;
 import dev.ftb.mods.ftbteambases.worldgen.processor.WaterLoggingFixProcessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Vec3i;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -95,14 +94,33 @@ public class DimensionUtils {
         serverPlayer.inventoryMenu.slotsChanged(serverPlayer.getInventory());
     }
 
-    @NotNull
     public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
-        return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId).map(baseTemplate ->
-                baseTemplate.constructionType().prebuilt().map(prebuilt -> {
-                    ResourceLocation setId = prebuilt.structureSetId().orElse(BaseDefinition.DEFAULT_STRUCTURE_SET);
-                    return holderLookup.getOrThrow(TagKey.create(Registries.STRUCTURE_SET, setId)).stream();
-                }).orElse(Stream.of())
-        ).orElse(Stream.of());
+        if (!(holderLookup instanceof HolderLookup.RegistryLookup<StructureSet> structureSetLookup)) {
+            FTBTeamBases.LOGGER.warn("Invalid holder lookup type for StructureSet");
+            return Stream.empty();
+        }
+
+        Optional<BaseDefinition> baseDefinitionOpt = BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId);
+        if (baseDefinitionOpt.isEmpty()) {
+            return Stream.empty();
+        }
+
+        BaseDefinition base = baseDefinitionOpt.get();
+        return getHolderStream(structureSetLookup, base);
+    }
+
+
+    @NotNull
+    private static Stream<Holder<StructureSet>> getHolderStream(HolderLookup.RegistryLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {
+        var construction = baseTemplate.constructionType();
+
+        if (construction.prebuilt().isPresent()) {
+            return StructureSetProvider.getStructureSets(holderLookup, construction.prebuilt().get());
+        } else if (construction.pregen().isPresent()) {
+            return StructureSetProvider.getStructureSets(holderLookup, construction.pregen().get());
+        } else {
+            return Stream.empty();
+        }
     }
 
     public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos) {
@@ -127,7 +145,7 @@ public class DimensionUtils {
                         vec = vec.add(new Vec3(respawnPosition.getX(), respawnPosition.getY(), respawnPosition.getZ()));
                     } else {
                         BlockPos levelSharedSpawn = BaseInstanceManager.get(player.server).getBaseForPlayer(player)
-                                        .map(LiveBaseDetails::spawnPos).orElse(BlockPos.ZERO);
+                                .map(LiveBaseDetails::spawnPos).orElse(BlockPos.ZERO);
                         vec = vec.add(new Vec3(levelSharedSpawn.getX(), levelSharedSpawn.getY(), levelSharedSpawn.getZ()));
                     }
                 } else {

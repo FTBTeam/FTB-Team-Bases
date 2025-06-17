@@ -1,6 +1,5 @@
 package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
@@ -29,7 +28,6 @@ import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 /**
  * Basically the vanilla NoiseBasedChunkGenerator, with biome distribution but no actual blocks
@@ -71,9 +69,14 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
 
     @Override
     public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> holderLookup, RandomState randomState, long seed) {
-        return ChunkGeneratorStructureState.createForFlat(randomState, seed, this.biomeSource,
-                DimensionUtils.possibleStructures(holderLookup, baseDefinitionId));
+        return ChunkGeneratorStructureState.createForFlat(
+                randomState,
+                seed,
+                this.biomeSource,
+                DimensionUtils.possibleStructures(holderLookup, baseDefinitionId)
+        );
     }
+
 
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
