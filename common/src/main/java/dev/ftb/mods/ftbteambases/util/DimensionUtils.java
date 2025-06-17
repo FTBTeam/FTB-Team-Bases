@@ -94,11 +94,21 @@ public class DimensionUtils {
         serverPlayer.inventoryMenu.slotsChanged(serverPlayer.getInventory());
     }
 
-    public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup.RegistryLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
-        return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId)
-                .map(baseTemplate -> getHolderStream(holderLookup, baseTemplate))
-                .orElse(Stream.of());
+    public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
+        if (!(holderLookup instanceof HolderLookup.RegistryLookup<StructureSet> structureSetLookup)) {
+            FTBTeamBases.LOGGER.warn("Invalid holder lookup type for StructureSet");
+            return Stream.empty();
+        }
+
+        Optional<BaseDefinition> baseDefinitionOpt = BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId);
+        if (baseDefinitionOpt.isEmpty()) {
+            return Stream.empty();
+        }
+
+        BaseDefinition base = baseDefinitionOpt.get();
+        return getHolderStream(structureSetLookup, base);
     }
+
 
     @NotNull
     private static Stream<Holder<StructureSet>> getHolderStream(HolderLookup.RegistryLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {

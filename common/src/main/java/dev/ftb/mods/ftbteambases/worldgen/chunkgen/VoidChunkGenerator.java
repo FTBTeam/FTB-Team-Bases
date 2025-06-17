@@ -73,12 +73,10 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
                 randomState,
                 seed,
                 this.biomeSource,
-                DimensionUtils.possibleStructures(
-                        (HolderLookup.RegistryLookup<StructureSet>) holderLookup,
-                        baseDefinitionId
-                )
+                DimensionUtils.possibleStructures(holderLookup, baseDefinitionId)
         );
     }
+
 
     @Override
     protected MapCodec<? extends ChunkGenerator> codec() {
