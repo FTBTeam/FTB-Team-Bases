@@ -100,7 +100,6 @@ public class DimensionUtils {
                 .orElse(Stream.of());
     }
 
-
     @NotNull
     private static Stream<Holder<StructureSet>> getHolderStream(HolderLookup.RegistryLookup<StructureSet> holderLookup, BaseDefinition baseTemplate) {
         var construction = baseTemplate.constructionType();
@@ -113,8 +112,6 @@ public class DimensionUtils {
             return Stream.empty();
         }
     }
-
-
 
     public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos) {
         return teleport(player, key, destPos, player.getYRot());
