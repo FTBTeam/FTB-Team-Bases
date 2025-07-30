@@ -18,7 +18,7 @@ import dev.ftb.mods.ftbteambases.registry.ModBlocks;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
-import dev.ftb.mods.ftbteambases.util.InitialPregen;
+import dev.ftb.mods.ftbteambases.util.LobbyPregen;
 import dev.ftb.mods.ftbteambases.util.RegionFileRelocator;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.event.TeamEvent;
@@ -127,7 +127,7 @@ public class FTBTeamBases {
 
     private static void onLevelLoad(ServerLevel serverLevel) {
         if (serverLevel.dimension() == OVERWORLD) {
-            if (InitialPregen.maybeDoInitialPregen(serverLevel.getServer())) {
+            if (LobbyPregen.maybePregenLobby(serverLevel.getServer())) {
                 return;
             }
         }
