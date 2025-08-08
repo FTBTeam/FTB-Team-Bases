@@ -53,7 +53,9 @@ public interface ServerConfig {
     EnumValue<ChunkGenerators> CHUNK_GENERATOR = WORLDGEN.addEnum("chunk_generator", ChunkGenerators.NAME_MAP)
             .comment("The chunk generator to use. SIMPLE_VOID (void dim, one biome), MULTI_BIOME_VOID (void dim, overworld-like biome distribution) and CUSTOM (full worldgen, customisable biome source & noise settings)");
     StringValue SINGLE_BIOME_ID = WORLDGEN.addString("single_biome_id", "")
-            .comment("Only used by the CUSTOM and SIMPLE_VOID generators; if non-empty (e.g. 'minecraft:the_void'), the dimension will generate with only this biome. If empty, CUSTOM generator will use an overworld-like biome distribution, and SIMPLE_VOID will use 'minecraft:the_void'");
+            .comment("Only used by the CUSTOM and SIMPLE_VOID generators; if non-empty (e.g. 'minecraft:the_void'), the dimension will generate with only this biome. If empty, CUSTOM generator will use either 'biome_source_from_dimension' or an overworld-like biome distribution, and SIMPLE_VOID will use 'minecraft:the_void'");
+    StringValue BIOME_SOURCE_FROM_DIMENSION = WORLDGEN.addString("biome_source_from_dimension", "")
+            .comment("Only used by the CUSTOM generator and only when 'single_biome_id' is empty; if non-empty (e.g. 'minecraft:the_nether'), the generated dimension will use the biome source from the dimension specified here.");
     EnumValue<FeatureGeneration> FEATURE_GEN = WORLDGEN.addEnum("feature_gen", FeatureGeneration.NAME_MAP)
             .comment("DEFAULT: generate features in non-void worlds, don't generate in void worlds; NEVER: never generate; ALWAYS: always generate");
     StringValue NOISE_SETTINGS = WORLDGEN.addString("noise_settings", "minecraft:overworld")

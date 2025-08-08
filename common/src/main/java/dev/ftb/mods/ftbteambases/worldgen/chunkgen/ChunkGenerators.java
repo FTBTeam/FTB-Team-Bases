@@ -6,9 +6,8 @@ import dev.ftb.mods.ftblibrary.config.NameMap;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-
-import java.util.function.BiFunction;
 
 public enum ChunkGenerators {
     MULTI_BIOME_VOID("void", VoidChunkGenerator::create, VoidChunkGenerator.CODEC),
@@ -17,10 +16,10 @@ public enum ChunkGenerators {
     public static final NameMap<ChunkGenerators> NAME_MAP = NameMap.of(MULTI_BIOME_VOID, values()).create();
 
     private final ResourceLocation id;
-    private final BiFunction<RegistryAccess, ResourceLocation, ChunkGenerator> factory;
+    private final ChunkGeneratorProvider factory;
     private final MapCodec<? extends ChunkGenerator> codec;
 
-    ChunkGenerators(String id, BiFunction<RegistryAccess, ResourceLocation, ChunkGenerator> factory, MapCodec<? extends ChunkGenerator> codec) {
+    ChunkGenerators(String id, ChunkGeneratorProvider factory, MapCodec<? extends ChunkGenerator> codec) {
         this.id = FTBTeamBases.rl(id);
         this.factory = factory;
         this.codec = codec;
@@ -40,7 +39,12 @@ public enum ChunkGenerators {
         return codec;
     }
 
-    public ChunkGenerator makeGenerator(RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
-        return factory.apply(registryAccess, prebuiltStructureId);
+    public ChunkGenerator makeGenerator(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
+        return factory.provide(server, registryAccess, prebuiltStructureId);
+    }
+
+    @FunctionalInterface
+    public interface ChunkGeneratorProvider {
+        ChunkGenerator provide(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId);
     }
 }
