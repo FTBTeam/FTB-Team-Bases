@@ -1,6 +1,5 @@
 package dev.ftb.mods.ftbteambases.worldgen.processor;
 
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import net.minecraft.core.BlockPos;
@@ -17,7 +16,6 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import net.minecraft.world.level.material.Fluids;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
 import java.util.Optional;
 
 public class WaterLoggingFixProcessor extends StructureProcessor {

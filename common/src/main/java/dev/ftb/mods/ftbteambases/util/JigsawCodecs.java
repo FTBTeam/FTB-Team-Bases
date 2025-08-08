@@ -6,7 +6,6 @@ import net.minecraft.core.FrontAndTop;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.level.block.entity.JigsawBlockEntity;
 import net.minecraft.world.level.block.entity.JigsawBlockEntity.JointType;
 
 public class JigsawCodecs {

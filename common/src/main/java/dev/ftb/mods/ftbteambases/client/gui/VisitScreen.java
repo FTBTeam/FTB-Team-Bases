@@ -1,7 +1,6 @@
 package dev.ftb.mods.ftbteambases.client.gui;
 
 import dev.architectury.networking.NetworkManager;
-import dev.ftb.mods.ftblibrary.util.NetworkHelper;
 import dev.ftb.mods.ftbteambases.net.OpenVisitScreenMessage;
 import dev.ftb.mods.ftbteambases.net.VisitBaseMessage;
 import net.minecraft.Util;
