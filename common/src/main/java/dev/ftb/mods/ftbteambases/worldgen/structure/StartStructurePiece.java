@@ -1,8 +1,8 @@
 package dev.ftb.mods.ftbteambases.worldgen.structure;
 
-import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
+import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;

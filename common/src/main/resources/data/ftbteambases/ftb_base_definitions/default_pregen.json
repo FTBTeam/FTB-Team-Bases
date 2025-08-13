@@ -6,7 +6,8 @@
     "dev_mode": true
   },
   "construction": {
-    "pregen_template": "test_2x2"
+    "pregen_template": "test_2x2",
+    "structure_sets": []
   },
   "dimension": {
     "private": false

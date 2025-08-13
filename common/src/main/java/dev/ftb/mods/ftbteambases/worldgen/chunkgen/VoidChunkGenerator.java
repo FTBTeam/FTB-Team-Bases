@@ -4,14 +4,15 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
-import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionProvider;
+import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
@@ -44,7 +45,7 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
 
     private final ResourceLocation baseDefinitionId;
 
-    public static VoidChunkGenerator create(RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
+    public static VoidChunkGenerator create(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
         Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
                 .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD);
         MultiNoiseBiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(preset);

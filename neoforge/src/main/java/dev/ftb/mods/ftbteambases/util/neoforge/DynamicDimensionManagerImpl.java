@@ -71,7 +71,7 @@ public class DynamicDimensionManagerImpl {
         ResourceLocation prebuiltStructureId = baseDefinition.constructionType().prebuilt()
                 .map(PrebuiltStructure::startStructure).orElse(FTBTeamBases.NO_TEMPLATE_ID);
         ChunkGenerator chunkGenerator = ServerConfig.CHUNK_GENERATOR.get()
-                .makeGenerator(registryAccess, prebuiltStructureId);
+                .makeGenerator(server, registryAccess, prebuiltStructureId);
 
         LevelStem dimension = new LevelStem(typeHolder, chunkGenerator);
 

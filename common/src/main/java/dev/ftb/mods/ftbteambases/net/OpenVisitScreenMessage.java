@@ -1,7 +1,6 @@
 package dev.ftb.mods.ftbteambases.net;
 
 import dev.architectury.networking.NetworkManager;
-import dev.architectury.networking.simple.MessageType;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.client.FTBTeamBasesClient;
 import dev.ftb.mods.ftbteambases.mixin.LevelAccess;
@@ -21,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 public record OpenVisitScreenMessage(Map<ResourceLocation, List<BaseData>> dimensionData) implements CustomPacketPayload {
-    public static final Type<OpenVisitScreenMessage> TYPE = new Type<OpenVisitScreenMessage>(FTBTeamBases.rl("open_visit_screen"));
+    public static final Type<OpenVisitScreenMessage> TYPE = new Type<>(FTBTeamBases.rl("open_visit_screen"));
     public static final StreamCodec<FriendlyByteBuf, OpenVisitScreenMessage> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.map(HashMap::newHashMap, ResourceLocation.STREAM_CODEC, BaseData.STREAM_CODEC.apply(ByteBufCodecs.list())), OpenVisitScreenMessage::dimensionData,
             OpenVisitScreenMessage::new

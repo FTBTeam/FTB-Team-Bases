@@ -174,7 +174,7 @@ public class FTBTeamBases {
     private static boolean isFirstTimeConnecting(ServerPlayer player, ServerLevel level) {
         return level.dimension().equals(OVERWORLD)
                 && player.getRespawnDimension().equals(OVERWORLD)
-                && !BaseInstanceManager.get().isPlayerKnown(player);
+                && !BaseInstanceManager.get(player.server).isPlayerKnown(player);
     }
 
     private static void playerChangedDimension(ServerPlayer player, ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {

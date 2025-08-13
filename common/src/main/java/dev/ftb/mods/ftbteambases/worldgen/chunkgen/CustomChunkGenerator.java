@@ -5,12 +5,18 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
-import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionProvider;
-import net.minecraft.core.*;
+import dev.ftb.mods.ftbteambases.mixin.ChunkGeneratorAccess;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.*;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
@@ -20,6 +26,7 @@ import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Basically the vanilla NoiseBasedChunkGenerator, with an optional initial start structure.  Can be configured to use
@@ -36,13 +43,22 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
 
     private final ResourceLocation baseTemplateId;
 
-    public static CustomChunkGenerator create(RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
+    public static CustomChunkGenerator create(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
         Registry<Biome> biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
         BiomeSource biomeSource;
         if (!ServerConfig.SINGLE_BIOME_ID.get().isEmpty()) {
             ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME,
                     ResourceLocation.parse(ServerConfig.SINGLE_BIOME_ID.get()));
             biomeSource = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey));
+        } else if (!ServerConfig.BIOME_SOURCE_FROM_DIMENSION.get().isEmpty()) {
+            ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION,
+                    ResourceLocation.parse(ServerConfig.BIOME_SOURCE_FROM_DIMENSION.get()));
+            ServerLevel level = server.getLevel(levelKey);
+            if (level == null) {
+                FTBTeamBases.LOGGER.error("unknown level {} in 'use_biome_source_from', falling back to overworld", levelKey.location());
+                level = Objects.requireNonNull(server.getLevel(Level.OVERWORLD));
+            }
+            biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
         } else {
             Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
                     .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD);

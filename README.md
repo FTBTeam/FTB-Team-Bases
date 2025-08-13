@@ -27,7 +27,8 @@ To set up a pregenerated base with region-relocation into the default shared dim
   "description": "Some description text",
   "preview_image": "ftbteambases:textures/spawn/default.png",
   "construction": {
-    "pregen_template": "my_template"
+    "pregen_template": "my_template",
+    "structure_sets": [ ]
   },
   "dimension": {
     "private": false
@@ -83,11 +84,12 @@ Fields in the `construction` section depend on the type of base you're construct
 
 For pregenerated bases:
 * `pregen_template` defines where the template MCA files which will be copied/relocated can be found, for pregenerated bases. More on this below.
+* `structure_sets` is a list of structure set ID's defining which structures may be added to the pregenerated terrain
 
 For single-structure bases:
-* `structure_location` defines a NBT structure which will be pasted into the world, for single-structure bases.
+* `structure_location` defines the single NBT structure which will be pasted into the world.
 * `y_pos` determines the Y position at which the structure will be pasted (the X/Z position is at the center of the region)
-  * If omitted, the structure will be pasted at the world surface; for void dimensions, it's recommended to include this.
+  * If omitted, the structure will be pasted at the world surface; for void dimensions, it's recommended to include this setting.
 * `include_entities` controls whether any entities saved in the NBT structure will be added to the world; defaults to false.
 
 #### Pregen Templates
@@ -102,7 +104,7 @@ r.0.0.mca  r.0.1.mca  r.1.0.mca  r.1.1.mca
 
 **Note:** only region MCA files are fully supported right now. Entity and POI MCA files (`entity/` and `/poi` subdirectories) are copied for private dimensions, but not supported for relocation in the shared dimension. 
 
-These files are copied directly into the dimension folder for private (non-relocated) dimensions, but processed and renamed when relocated into a shared dimension. For this reason, creating a base in a private dimension is much faster than one in a shared dimension.
+These files are copied directly into the dimension folder for private (non-relocated) dimensions, but processed and renamed when relocated into a shared dimension. For this reason, creating a pregen base in a private dimension is much faster than creating one in a shared dimension.
 
 ### Setting up the Overworld Lobby
 
@@ -141,9 +143,9 @@ There are two ways to do this:
 1. Use the `/ftbteambases create <base-definition>` command. This needs admin privileges, so regular players would likely run this via a command block. The base definition is the JSON file you created above, e.g. `/ftbteambases create ftbteambases:my_base_type`
 2. Set up a portal structure, using the `ftbteambases:portal` block. This block can only be obtained with the `/give` command, but can be used to build a portal structure in your lobby (although it looks like a Nether portal block, it doesn't need obsidian around it - feel free to create any shape and surrounding you like). When a player walks into this portal block, they are either teleported to their base (if they have one), or presented with a selection GUI to create a base, based on the currently-existing base definitions.
 
-Note that base creation can take a few seconds, especially if there are multiple region files to copied/relocated from the templates to the live dimension. Players get a progress indicator while their base is being prepared (preparation should not cause any noticeable server lag).
+Note that base creation can take a few seconds, especially if there are multiple region files to be copied/relocated from the templates to the live dimension. Players get a progress indicator while their base is being prepared (preparation should not cause any noticeable server lag).
 
-* When a base is created, a team is automatically created for the player.
+* When a base is created, an FTB Teams team is automatically created for the player.
 * If a team is disbanded, the base is archived, and any players in the base are sent back to the lobby.
 * If a player joins an existing team, they are automatically sent to the team's base. If they leave the team, they are sent back to the lobby.
 
@@ -170,7 +172,7 @@ Note that base creation can take a few seconds, especially if there are multiple
 * `/ftbteambases purge cancel_all` - unschedule all pending base purges
 * `/ftbteambases purge cancel <archive-id>` - unschedule a specific pending base purge
 
-Bases scheduled for purge will be _permanently_ deleted on the next server restart. A server backup system is recommended if you use this!
+Bases scheduled for purge will be _permanently_ deleted on the next server restart. A separate server backup system is recommended if you use this!
 
 ## Config Files
 
