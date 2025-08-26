@@ -39,18 +39,9 @@ allprojects {
 
     repositories {
         mavenLocal()
-
         maven {
             url "https://maven.architectury.dev/"
         }
-
-        maven {
-            url "https://www.cursemaven.com"
-            content {
-                includeGroup "curse.maven"
-            }
-        }
-
         maven {
             url "https://maven.ftb.dev/releases"
             content {
@@ -58,9 +49,9 @@ allprojects {
             }
         }
         maven {
-            url "https://maven.latvian.dev/releases"
+            url "https://maven.ftb.dev/snapshots"
             content {
-                includeGroup "dev.latvian.mods"
+                includeGroup "dev.ftb.mods"
             }
         }
     }

@@ -1,6 +1,7 @@
 package dev.ftb.mods.ftbteambases.command;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -9,6 +10,7 @@ import dev.ftb.mods.ftbteambases.data.bases.ArchivedBaseDetails;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
+import dev.ftb.mods.ftbteams.api.TeamManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
@@ -70,7 +72,28 @@ public class ArchiveCommand {
                                         .executes(ctx -> doPurgeArchive(ctx.getSource(), StringArgumentType.getString(ctx, "id")))
                                 )
                         )
+                )
+                .then(literal("cleanup")
+                        .executes(ctx -> doCleanup(ctx.getSource()))
                 );
+    }
+
+    private static int doCleanup(CommandSourceStack source) {
+        BaseInstanceManager mgr = BaseInstanceManager.get(source.getServer());
+        TeamManager teamManager = FTBTeamsAPI.api().getManager();
+
+        Set<UUID> toCleanup = new HashSet<>();
+        mgr.allLiveBases().forEach((id, details) -> {
+            if (teamManager.getTeamByID(id).isEmpty()) {
+                toCleanup.add(id);
+            }
+        });
+
+        toCleanup.forEach(mgr::deleteStaleBase);
+
+        source.sendSuccess(() -> Component.translatable("ftbteambases.message.stale_bases", toCleanup.size()).withStyle(ChatFormatting.YELLOW), false);
+
+        return Command.SINGLE_SUCCESS;
     }
 
     private static int doListArchive(CommandSourceStack source, Predicate<ArchivedBaseDetails> pred) {

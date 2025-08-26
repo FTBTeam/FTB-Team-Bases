@@ -36,3 +36,17 @@ type = "required"
 versionRange = "[${archversion},)"
 ordering = "AFTER"
 side = "BOTH"
+
+[[dependencies.ftbteambases]]
+modId = "ftbteams"
+type = "required"
+versionRange = "[${ftbteamsversion},)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.ftbteambases]]
+modId = "ftblibrary"
+type = "required"
+versionRange = "[${ftblibraryversion},)"
+ordering = "AFTER"
+side = "BOTH"

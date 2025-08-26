@@ -32,15 +32,18 @@ public class ListCommand {
                     .withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE), false);
             source.sendSuccess(Component::empty, false);
             var mgr = FTBTeamsAPI.api().getManager();
-            bases.forEach((id, base) -> mgr.getTeamByID(id).ifPresent(team -> {
-                var msg = Component.literal("• ")
-                        .append(CommandUtils.makeTooltipComponent(Component.literal(team.getShortName()), ChatFormatting.YELLOW, team.getTeamId().toString()))
-                        .append(" ")
-                        .append(CommandUtils.makeCommandClicky("ftbteambases.gui.show", ChatFormatting.GREEN, "/ftbteambases show " + team.getShortName()))
-                        .append(" ")
-                        .append(CommandUtils.makeCommandClicky("ftbteambases.gui.visit", ChatFormatting.GREEN, "/ftbteambases visit " + team.getShortName()));
-                source.sendSuccess(() -> msg, false);
-            }));
+            bases.forEach((id, base) -> mgr.getTeamByID(id).ifPresentOrElse(
+                    team -> {
+                        var msg = Component.literal("• ")
+                                .append(CommandUtils.makeTooltipComponent(Component.literal(team.getShortName()), ChatFormatting.YELLOW, team.getTeamId().toString()))
+                                .append(" ")
+                                .append(CommandUtils.makeCommandClicky("ftbteambases.gui.show", ChatFormatting.GREEN, "/ftbteambases show " + team.getShortName()))
+                                .append(" ")
+                                .append(CommandUtils.makeCommandClicky("ftbteambases.gui.visit", ChatFormatting.GREEN, "/ftbteambases visit " + team.getShortName()));
+                        source.sendSuccess(() -> msg, false);
+                    },
+                    () -> source.sendSuccess(() -> Component.translatable("ftbteambases.message.missing_team", id.toString()).withStyle(ChatFormatting.RED), false)
+            ));
         }
 
         return 1;

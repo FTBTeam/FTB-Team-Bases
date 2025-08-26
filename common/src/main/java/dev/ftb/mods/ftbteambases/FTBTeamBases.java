@@ -75,6 +75,7 @@ public class FTBTeamBases {
 
         TeamEvent.PLAYER_JOINED_PARTY.register(TeamEventListener::teamPlayerJoin);
         TeamEvent.PLAYER_LEFT_PARTY.register(TeamEventListener::teamPlayerLeftParty);
+        TeamEvent.DELETED.register(TeamEventListener::teamDeleted);
 
         EntityEvent.ADD.register(FTBTeamBases::playerJoinLevel);
 
@@ -141,6 +142,7 @@ public class FTBTeamBases {
 
     private static void playerEnterServer(ServerPlayer player) {
         SyncBaseTemplatesMessage.syncTo(player);
+        BaseInstanceManager.get().checkForOrphanedPlayer(player);
     }
 
     private static EventResult playerJoinLevel(Entity entity, Level level) {
