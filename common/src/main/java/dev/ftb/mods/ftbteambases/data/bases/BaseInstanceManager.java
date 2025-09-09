@@ -19,6 +19,7 @@ import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.TeamArgument;
+import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -332,12 +333,14 @@ public class BaseInstanceManager extends SavedData {
             FTBTeamBases.LOGGER.debug("player {} left team, sending back to lobby", playerId);
         } else {
             orphanedPlayers.add(playerId);
+            setDirty();
             FTBTeamBases.LOGGER.debug("player {} removed from team, but is offline - marked as orphaned", playerId);
         }
     }
 
     public void checkForOrphanedPlayer(@NotNull ServerPlayer player) {
         if (orphanedPlayers.contains(player.getUUID())) {
+            player.displayClientMessage(Component.translatable("ftbteambases.message.team_was_disbanded").withStyle(ChatFormatting.GOLD), false);
             onPlayerLeaveTeam(player, player.getUUID());
             orphanedPlayers.remove(player.getUUID());
             setDirty();

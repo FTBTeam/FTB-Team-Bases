@@ -24,6 +24,7 @@
   "ftbteambases.message.not_nether_team_base": "Team nether entry points are not enabled in this instance",
   "ftbteambases.message.stale_bases": "Archived %s stale base(s)",
   "ftbteambases.message.missing_team": "Team %s seems to be missing! Use `/ftbteambases archive cleanup' to archive it",
+  "ftbteambases.message.team_was_disbanded": "Your team was disbanded since you last played. Returning you to the lobby...",
   "ftbteambases.gui.show": "Show",
   "ftbteambases.gui.restore": "Restore",
   "ftbteambases.gui.purge": "Purge",
