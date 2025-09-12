@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [21.1.8]
+
+### Fixed
+* Fixed behaviour when force-disbanding teams, particularly when players are offline
+  * Was failing to archive base if `/ftbteams force-disband` is run when all team players are offline
+  * Now ensures all players in the team (even if offline) are sent back to the lobby on next login (and inventory cleared if appropriate)
+  * Also added `/ftbteambases archive verify` to archive any orphaned bases (i.e. where the team can't be found) that are detected
+
 ## [21.1.7]
 
 ### Added

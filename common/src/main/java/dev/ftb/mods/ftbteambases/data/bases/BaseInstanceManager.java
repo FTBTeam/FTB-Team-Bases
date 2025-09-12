@@ -19,6 +19,7 @@ import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.TeamArgument;
+import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -40,6 +41,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.storage.DimensionDataStorage;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,7 +68,7 @@ public class BaseInstanceManager extends SavedData {
             = Codec.unboundedMap(Codec.STRING, ArchivedBaseDetails.CODEC).xmap(HashMap::new, Map::copyOf);
     private static final Codec<Map<UUID,BlockPos>> NETHER_PORTAL_POS_CODEC
             = Codec.unboundedMap(UUIDUtil.STRING_CODEC, BlockPos.CODEC).xmap(HashMap::new, Map::copyOf);
-    private static final Codec<Set<UUID>> KNOWN_PLAYERS_CODEC
+    private static final Codec<Set<UUID>> PLAYER_ID_LIST_CODEC
             = UUIDUtil.CODEC.listOf().xmap(HashSet::new, List::copyOf);
 
     private static final Codec<BaseInstanceManager> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -78,7 +80,8 @@ public class BaseInstanceManager extends SavedData {
             Codec.BOOL.fieldOf("is_lobby_created").forGetter(mgr -> mgr.isLobbyCreated),
             BlockPos.CODEC.fieldOf("lobby_spawn_pos").forGetter(mgr -> mgr.lobbySpawnPos),
             NETHER_PORTAL_POS_CODEC.fieldOf("nether_portal_pos").forGetter(mgr -> mgr.playerNetherPortalLocs),
-            KNOWN_PLAYERS_CODEC.fieldOf("known_players").forGetter(mgr -> mgr.knownPlayers)
+            PLAYER_ID_LIST_CODEC.fieldOf("known_players").forGetter(mgr -> mgr.knownPlayers),
+            PLAYER_ID_LIST_CODEC.optionalFieldOf("orphaned_players", new HashSet<>()).forGetter(mgr -> mgr.orphanedPlayers)
     ).apply(inst, BaseInstanceManager::new));
 
     // maps team UUID to live base details
@@ -93,6 +96,8 @@ public class BaseInstanceManager extends SavedData {
     private final Map<UUID,BlockPos> playerNetherPortalLocs;
     // stores uuids of all players who have connected to this server
     private final Set<UUID> knownPlayers;
+    // stores uuids of players whose team got disbanded while they were offline
+    private final Set<UUID> orphanedPlayers;
 
     private boolean isLobbyCreated;
     private BlockPos lobbySpawnPos;
@@ -101,7 +106,7 @@ public class BaseInstanceManager extends SavedData {
     private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos,
                                 Map<ResourceLocation, Integer> zOffsets, Map<String, ArchivedBaseDetails> archivedBases,
                                 int nextArchiveId, boolean isLobbyCreated, BlockPos lobbySpawnPos,
-                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers) {
+                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers, Set<UUID> orphanedPlayers) {
         this.liveBases = liveBases;
         this.storedGenPos = genPos;
         this.storedZoffset = zOffsets;
@@ -111,11 +116,12 @@ public class BaseInstanceManager extends SavedData {
         this.lobbySpawnPos = lobbySpawnPos;
         this.playerNetherPortalLocs = netherPortalPos;
         this.knownPlayers = knownPlayers;
+        this.orphanedPlayers = orphanedPlayers;
     }
 
     private static BaseInstanceManager createNew() {
         return new BaseInstanceManager(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                0, false, BlockPos.ZERO, new HashMap<>(), new HashSet<>());
+                0, false, BlockPos.ZERO, new HashMap<>(), new HashSet<>(), new HashSet<>());
     }
 
     public static BaseInstanceManager get() {
@@ -287,6 +293,18 @@ public class BaseInstanceManager extends SavedData {
         return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
     }
 
+    public void deleteStaleBase(UUID teamId) {
+        LiveBaseDetails base = liveBases.remove(teamId);
+        if (base != null) {
+            String name = teamId.toString() + "-" + nextArchiveId;
+            archivedBases.put(name, new ArchivedBaseDetails(name, base.extents(), base.dimension(), base.spawnPos(), teamId, Util.getEpochMillis()));
+            nextArchiveId++;
+
+            setDirty();
+            FTBTeamBases.LOGGER.debug("stale team base for team {} has been archived", teamId);
+        }
+    }
+
     public void deleteAndArchive(MinecraftServer server, Team team) {
         LiveBaseDetails base = liveBases.remove(team.getTeamId());
 
@@ -295,8 +313,37 @@ public class BaseInstanceManager extends SavedData {
             name += "-" + nextArchiveId;
             archivedBases.put(name, new ArchivedBaseDetails(name, base.extents(), base.dimension(), base.spawnPos(), team.getOwner(), Util.getEpochMillis()));
             nextArchiveId++;
+
+            // the team should be empty of players at this point, but just in case...
+            team.getMembers().forEach(id -> onPlayerLeaveTeam(server.getPlayerList().getPlayer(id), id));
+
             setDirty();
             BaseArchivedEvent.ARCHIVED.invoker().deleted(this, team);
+
+            FTBTeamBases.LOGGER.debug("team base for team {} has been archived", team.getId());
+        }
+    }
+
+    public void onPlayerLeaveTeam(@Nullable ServerPlayer player, UUID playerId) {
+        if (player != null) {
+            if (ServerConfig.CLEAR_PLAYER_INV_ON_LEAVE.get()) {
+                DimensionUtils.clearPlayerInventory(player);
+            }
+            teleportToLobby(player);
+            FTBTeamBases.LOGGER.debug("player {} left team, sending back to lobby", playerId);
+        } else {
+            orphanedPlayers.add(playerId);
+            setDirty();
+            FTBTeamBases.LOGGER.debug("player {} removed from team, but is offline - marked as orphaned", playerId);
+        }
+    }
+
+    public void checkForOrphanedPlayer(@NotNull ServerPlayer player) {
+        if (orphanedPlayers.contains(player.getUUID())) {
+            player.displayClientMessage(Component.translatable("ftbteambases.message.team_was_disbanded").withStyle(ChatFormatting.GOLD), false);
+            onPlayerLeaveTeam(player, player.getUUID());
+            orphanedPlayers.remove(player.getUUID());
+            setDirty();
         }
     }
 
