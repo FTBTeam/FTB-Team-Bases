@@ -15,6 +15,7 @@ import dev.ftb.mods.ftbteambases.net.FTBTeamBasesNet;
 import dev.ftb.mods.ftbteambases.net.SyncBaseTemplatesMessage;
 import dev.ftb.mods.ftbteambases.net.VoidTeamDimensionMessage;
 import dev.ftb.mods.ftbteambases.registry.ModBlocks;
+import dev.ftb.mods.ftbteambases.registry.ModSounds;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
@@ -60,6 +61,7 @@ public class FTBTeamBases {
 
         ModWorldGen.init();
         ModBlocks.init();
+        ModSounds.init();
 
         FTBTeamBasesNet.init();
 

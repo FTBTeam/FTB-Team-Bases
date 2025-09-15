@@ -5,13 +5,16 @@ import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.net.ShowSelectionGuiMessage;
 import dev.ftb.mods.ftbteambases.registry.ModBlocks;
+import dev.ftb.mods.ftbteambases.registry.ModSounds;
 import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
@@ -80,5 +83,32 @@ public class BasesPortalBlock extends NetherPortalBlock {
     @Override
     public BlockState updateShape(BlockState blockState, Direction direction, BlockState blockState2, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos blockPos2) {
         return blockState;
+    }
+
+    @Override
+    public void animateTick(BlockState blockState, Level level, BlockPos pos, RandomSource randomSource) {
+        if (randomSource.nextInt(100) == 0) {
+            level.playLocalSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                    ModSounds.PORTAL.get(), SoundSource.BLOCKS, 0.5F, randomSource.nextFloat() * 0.4F + 0.8F, false);
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            double x = pos.getX() + randomSource.nextDouble();
+            double y = pos.getY() + randomSource.nextDouble();
+            double z = pos.getZ() + randomSource.nextDouble();
+            double xo = (randomSource.nextFloat() - 0.5) * 0.5;
+            double yo = (randomSource.nextFloat() - 0.5) * 0.5;
+            double zo = (randomSource.nextFloat() - 0.5) * 0.5;
+            int k = randomSource.nextInt(2) * 2 - 1;
+            if (!level.getBlockState(pos.west()).is(this) && !level.getBlockState(pos.east()).is(this)) {
+                x = pos.getX() + 0.5 + 0.25 * k;
+                xo = randomSource.nextFloat() * 2.0F * k;
+            } else {
+                z = pos.getZ() + 0.5 + 0.25 * k;
+                zo = randomSource.nextFloat() * 2.0F * k;
+            }
+
+            level.addParticle(ParticleTypes.PORTAL, x, y, z, xo, yo, zo);
+        }
     }
 }

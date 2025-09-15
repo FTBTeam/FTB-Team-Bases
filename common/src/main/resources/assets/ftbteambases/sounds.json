@@ -1,0 +1,12 @@
+{
+  "portal": {
+    "category": "blocks",
+    "subtitle" : "subtitles.block.portal.ambient",
+    "sounds": [
+      {
+        "name": "portal/portal",
+        "attenuation_distance": 10
+      }
+    ]
+  }
+}
