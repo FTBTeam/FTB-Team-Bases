@@ -5,9 +5,11 @@ import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
 import dev.ftb.mods.ftbteambases.net.ShowSelectionGuiMessage;
 import dev.ftb.mods.ftbteambases.registry.ModBlocks;
+import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
@@ -43,15 +45,21 @@ public class BasesPortalBlock extends NetherPortalBlock {
             //   and not when loitering around in a portal block
             player.setPortalCooldown();
         } else {
-            FTBTeamsAPI.api().getManager().getTeamForPlayer(player).ifPresent(team -> {
-                if (team.isPartyTeam()) {
-                    BaseInstanceManager.get(player.getServer()).teleportToBaseSpawn(player, team.getId());
-                } else if (!BaseConstructionManager.INSTANCE.isConstructing(player)) {
-                    // player not in a party: bring up the base selection GUI
-                    player.setPortalCooldown();
-                    NetworkManager.sendToPlayer(player, ShowSelectionGuiMessage.INSTANCE);
-                }
-            });
+            Component cancellationMsg = MiscUtil.postPortalEvent(player);
+            if (cancellationMsg == null) {
+                FTBTeamsAPI.api().getManager().getTeamForPlayer(player).ifPresent(team -> {
+                    if (team.isPartyTeam()) {
+                        BaseInstanceManager.get(player.getServer()).teleportToBaseSpawn(player, team.getId());
+                    } else if (!BaseConstructionManager.INSTANCE.isConstructing(player)) {
+                        // player not in a party: bring up the base selection GUI
+                        player.setPortalCooldown();
+                        NetworkManager.sendToPlayer(player, ShowSelectionGuiMessage.INSTANCE);
+                    }
+                });
+            } else {
+                player.displayClientMessage(cancellationMsg, true);
+                player.setPortalCooldown();
+            }
         }
     }
 

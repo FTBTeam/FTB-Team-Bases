@@ -1,8 +1,12 @@
 package dev.ftb.mods.ftbteambases.util.neoforge;
 
+import dev.ftb.mods.ftbteambases.neoforge.TeamBasesPortalEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.common.NeoForge;
 
 public class MiscUtilImpl {
     public static double getTickTime(MinecraftServer server, ResourceKey<Level> key) {
@@ -17,5 +21,10 @@ public class MiscUtilImpl {
             sum += v;
         }
         return sum / (long)values.length;
+    }
+
+    public static Component postPortalEvent(ServerPlayer player) {
+        TeamBasesPortalEvent event = new TeamBasesPortalEvent(player);
+        return NeoForge.EVENT_BUS.post(event).isCanceled() ? event.getCancellationReason() : null;
     }
 }

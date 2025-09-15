@@ -2,12 +2,15 @@ package dev.ftb.mods.ftbteambases.util;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ServerLevelData;
+import org.jetbrains.annotations.Nullable;
 
 public class MiscUtil {
     public static String blockPosStr(BlockPos pos) {
@@ -31,6 +34,12 @@ public class MiscUtil {
 
     @ExpectPlatform
     public static double getTickTime(MinecraftServer server, ResourceKey<Level> key) {
+        throw new AssertionError();
+    }
+
+    @ExpectPlatform
+    @Nullable
+    public static Component postPortalEvent(ServerPlayer player) {
         throw new AssertionError();
     }
 }
