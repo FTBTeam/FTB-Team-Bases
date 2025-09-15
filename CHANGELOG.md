@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [21.1.8]
 
+### Added
+* (NeoForge only) A `TeamBasesPortalEvent` event is now posted when players walk into a team bases portal
+  * Cancelling with `event.cancelWithReason(textComponent)` will prevent portal usage and display the reason to the player
+  * Can be used to e.g. require the player has a game stage or has completed a quest
+
 ### Fixed
 * Fixed behaviour when force-disbanding teams, particularly when players are offline
   * Was failing to archive base if `/ftbteams force-disband` is run when all team players are offline
