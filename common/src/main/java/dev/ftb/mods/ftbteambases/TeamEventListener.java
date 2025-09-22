@@ -31,7 +31,9 @@ public class TeamEventListener {
             foodData.setSaturation(5.0f);
         }
 
-        BaseInstanceManager.get(serverPlayer.getServer()).teleportToBaseSpawn(serverPlayer, team.getTeamId(), true);
+        // note: this is a no-op for the player who creates the team initially (base doesn't exist yet)
+        //   but is necessary for any players who subsequently join the team
+        BaseInstanceManager.get(serverPlayer.getServer()).teleportToBaseSpawn(serverPlayer, team.getTeamId());
     }
 
     static void teamPlayerLeftParty(PlayerLeftPartyTeamEvent event) {

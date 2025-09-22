@@ -118,7 +118,7 @@ public class FTBTeamBases {
                 BaseInstanceManager mgr = BaseInstanceManager.get(server);
                 if (mgr.isLobbyCreated() && !level.getSharedSpawnPos().equals(mgr.getLobbySpawnPos())) {
                     level.setDefaultSpawnPos(mgr.getLobbySpawnPos(), 180F);
-                    LOGGER.info("Updating overworld spawn pos to the lobby location: {}", mgr.getLobbySpawnPos());
+                    LOGGER.info("Updating overworld spawn pos to the lobby spawn pos: {}", mgr.getLobbySpawnPos());
                 }
             }
         });
@@ -137,7 +137,7 @@ public class FTBTeamBases {
 
         ServerConfig.lobbyDimension().ifPresent(rl -> {
             if (serverLevel.dimension().equals(rl)) {
-                handleLobbySetup(serverLevel);
+                maybeCreateLobbyFromStructure(serverLevel);
             }
         });
     }
@@ -154,13 +154,12 @@ public class FTBTeamBases {
                         .map(dim -> serverLevel.getServer().getLevel(dim))
                         .orElse(serverLevel);
 
-                // Send new players to the lobby, and set their respawn position there
+                // Send new players to the lobby. Note that respawn position is handled by
+                // the FTBTeamBasesNeoForge#PlayerRespawnPositionEvent handler
+                // TODO drop Fabric support entirely!
                 BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
-                if (player.getRespawnPosition() == null || !player.getRespawnPosition().equals(lobbySpawnPos)) {
-                    player.setRespawnPosition(destLevel.dimension(), lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), true, false);
-                    player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(),
-                            ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), -10F);
-                }
+                player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(),
+                        ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), -10F);
                 BaseInstanceManager.get().addKnownPlayer(player);
             }
 
@@ -170,7 +169,6 @@ public class FTBTeamBases {
                 }
                 switchGameMode(player, null, s.dimension());
             }
-
         }
         return EventResult.pass();
     }
@@ -221,7 +219,7 @@ public class FTBTeamBases {
         }
     }
 
-    private static void handleLobbySetup(ServerLevel serverLevel) {
+    private static void maybeCreateLobbyFromStructure(ServerLevel serverLevel) {
         BaseInstanceManager mgr = BaseInstanceManager.get(serverLevel.getServer());
         if (!mgr.isLobbyCreated()) {
             ServerConfig.lobbyLocation().ifPresent(lobbyLocation -> {
@@ -235,11 +233,12 @@ public class FTBTeamBases {
                 BlockPos relativePos = DimensionUtils.locateSpawn(lobby).orElse(BlockPos.ZERO);
                 BlockPos playerSpawn = lobbyPos.offset(relativePos.getX(), relativePos.getY(), relativePos.getZ());
 
-                mgr.setLobbySpawnPos(playerSpawn);
+                mgr.setLobbySpawnPos(playerSpawn, false);
                 serverLevel.removeBlock(playerSpawn, false);
                 serverLevel.setDefaultSpawnPos(playerSpawn, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
 
                 mgr.setLobbyCreated(true);
+                mgr.forceSave(serverLevel.getServer());
 
                 LOGGER.info("Spawned lobby structure @ {} / {}", serverLevel.dimension().location(), lobbyPos);
             });

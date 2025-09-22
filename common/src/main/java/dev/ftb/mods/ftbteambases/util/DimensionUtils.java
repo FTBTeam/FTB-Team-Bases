@@ -16,6 +16,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Vec3i;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
@@ -162,11 +163,16 @@ public class DimensionUtils {
     }
 
     private static void doTeleport(ServerPlayer player, ServerLevel level, BlockPos pos, float yRot) {
-        ChunkPos chunkpos = new ChunkPos(pos);
-        level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
-        player.stopRiding();
-        player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, yRot, player.getXRot());
+        player.getServer().tell(new TickTask(player.getServer().getTickCount(), () -> {
+            ChunkPos chunkpos = new ChunkPos(pos);
+            level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
+            player.stopRiding();
+            if (player.isSleeping()) {
+                player.stopSleepInBed(true, true);
+            }
+            player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, yRot, player.getXRot());
 
-        FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().getName(), pos, level.dimension().location());
+            FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().getName(), pos, level.dimension().location());
+        }));
     }
 }

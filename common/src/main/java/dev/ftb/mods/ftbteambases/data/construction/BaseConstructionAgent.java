@@ -11,6 +11,7 @@ import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.PlayerTeam;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 
@@ -58,6 +59,7 @@ public class BaseConstructionAgent {
                     try {
                         Team party = playerTeam.createParty("", null);
                         BaseInstanceManager.get(server).addNewBase(party.getId(), constructionWorker.makeLiveBaseDetails(destLevel, baseDefinition));
+                        BaseInstanceManager.get(server).forceSave(server);
                         if (player != null) {
                             // teleport player to newly-created base
                             BaseInstanceManager.get(server).teleportToBaseSpawn(player, party.getId());

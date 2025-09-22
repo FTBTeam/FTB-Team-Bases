@@ -25,7 +25,7 @@ public class SetLobbyPosCommand {
     }
 
     private static int setLobbyPos(CommandSourceStack source, BlockPos pos) {
-        BaseInstanceManager.get(source.getServer()).setLobbySpawnPos(pos);
+        BaseInstanceManager.get(source.getServer()).setLobbySpawnPos(pos, true);
 
         source.sendSuccess(() -> Component.literal("lobby pos updated to " + MiscUtil.blockPosStr(pos)), false);
 

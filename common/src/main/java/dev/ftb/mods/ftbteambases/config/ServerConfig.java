@@ -36,12 +36,14 @@ public interface ServerConfig {
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
-            .comment("Resource location of the structure NBT for the overworld lobby");
+            .comment("Resource location of the structure NBT for the lobby",
+                    "This is ignored if using pregenerated lobby region files (.mca files copied from ftbteambases/pregen_initial/)");
     IntValue LOBBY_Y_POS = LOBBY.addInt("lobby_y_pos", 0, -64, 256)
             .comment("Y position at which the lobby structure will be pasted into the level. " +
                     "Note: too near world min/max build height may result in parts of the structure being cut off - beware.");
     EnumValue<GameType> LOBBY_GAME_MODE = LOBBY.addEnum("lobby_game_mode", GAME_TYPE_NAME_MAP)
-            .comment("The default game mode given to players when in the lobby. Note that admin-mode players are free to change this.");
+            .comment("The default game mode given to players when in the lobby.",
+                    "Note that admin-mode players are free to change this.");
     IntArrayValue LOBBY_SPAWN = LOBBY.addIntArray("lobby_spawn_pos", new int[]{ 0, 0, 0})
             .comment("Position at which new players spawn. Only used if the lobby structure comes from a pregenerated region!");
     StringValue LOBBY_DIMENSION = LOBBY.addString("lobby_dimension", "minecraft:overworld")

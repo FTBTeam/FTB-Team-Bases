@@ -12,10 +12,7 @@ import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.events.BaseArchivedEvent;
-import dev.ftb.mods.ftbteambases.util.DimensionUtils;
-import dev.ftb.mods.ftbteambases.util.NetherPortalPlacement;
-import dev.ftb.mods.ftbteambases.util.RegionCoords;
-import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
+import dev.ftb.mods.ftbteambases.util.*;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.TeamArgument;
@@ -31,6 +28,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
@@ -100,12 +98,12 @@ public class BaseInstanceManager extends SavedData {
     private final Set<UUID> orphanedPlayers;
 
     private boolean isLobbyCreated;
-    private BlockPos lobbySpawnPos;
+    private @Nullable BlockPos lobbySpawnPos;
     private int nextArchiveId;
 
     private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos,
                                 Map<ResourceLocation, Integer> zOffsets, Map<String, ArchivedBaseDetails> archivedBases,
-                                int nextArchiveId, boolean isLobbyCreated, BlockPos lobbySpawnPos,
+                                int nextArchiveId, boolean isLobbyCreated, @Nullable BlockPos lobbySpawnPos,
                                 Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers, Set<UUID> orphanedPlayers) {
         this.liveBases = liveBases;
         this.storedGenPos = genPos;
@@ -121,7 +119,7 @@ public class BaseInstanceManager extends SavedData {
 
     private static BaseInstanceManager createNew() {
         return new BaseInstanceManager(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                0, false, BlockPos.ZERO, new HashMap<>(), new HashSet<>(), new HashSet<>());
+                0, false, null, new HashMap<>(), new HashSet<>(), new HashSet<>());
     }
 
     public static BaseInstanceManager get() {
@@ -205,25 +203,17 @@ public class BaseInstanceManager extends SavedData {
     }
 
     public boolean teleportToBaseSpawn(ServerPlayer player, UUID baseId) {
-        return teleportToBaseSpawn(player, baseId, false);
-    }
-
-    public boolean teleportToBaseSpawn(ServerPlayer player, UUID baseId, boolean setRespawnPoint) {
         LiveBaseDetails base = liveBases.get(baseId);
         if (base != null) {
-            ServerLevel level = player.getServer().getLevel(base.dimension());
-            if (level != null) {
-                Vec3 vec = Vec3.atCenterOf(base.spawnPos());
-                player.getServer().executeIfPossible(() ->
-                        player.teleportTo(level, vec.x, vec.y, vec.z, player.getYRot(), player.getXRot())
-                );
-
-                if (setRespawnPoint) {
-                    player.setRespawnPosition(base.dimension(), base.spawnPos(), 0, true, false);
-                }
-
-                return true;
-            }
+            return DimensionUtils.teleport(player, base.dimension(), base.spawnPos(), player.getYRot());
+//            ServerLevel level = player.getServer().getLevel(base.dimension());
+//            if (level != null) {
+//                Vec3 vec = Vec3.atCenterOf(base.spawnPos());
+//                player.getServer().tell(new TickTask(player.getServer().getTickCount(), () ->
+//                        player.teleportTo(level, vec.x, vec.y, vec.z, player.getYRot(), player.getXRot())
+//                ));
+//                return true;
+//            }
         }
         return false;
     }
@@ -289,8 +279,11 @@ public class BaseInstanceManager extends SavedData {
     }
 
     public boolean teleportToLobby(ServerPlayer serverPlayer) {
-        ResourceKey<Level> destLevel = ServerConfig.lobbyDimension().orElse(Level.OVERWORLD);
-        return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
+        if (lobbySpawnPos != null) {
+            ResourceKey<Level> destLevel = ServerConfig.lobbyDimension().orElse(Level.OVERWORLD);
+            return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
+        }
+        return false;
     }
 
     public void deleteStaleBase(UUID teamId) {
@@ -376,8 +369,9 @@ public class BaseInstanceManager extends SavedData {
         if (team.isPlayerTeam()) {
             Team newParty = team.createParty("", null);
 
-            addNewBase(newParty.getId(), base.makeLiveBaseDetails());
             archivedBases.remove(base.archiveId());
+            addNewBase(newParty.getId(), base.makeLiveBaseDetails());
+            BaseInstanceManager.get(server).forceSave(server);
 
             ServerPlayer player = server.getPlayerList().getPlayer(base.ownerId());
             if (player != null) {
@@ -418,10 +412,18 @@ public class BaseInstanceManager extends SavedData {
     }
 
     public BlockPos getLobbySpawnPos() {
+        if (lobbySpawnPos == null) {
+            FTBTeamBases.LOGGER.warn("lobby spawn pos uninitialized in base instance manager? defaulting to (0,0,0)");
+            return BlockPos.ZERO;
+        }
         return lobbySpawnPos;
     }
 
-    public void setLobbySpawnPos(BlockPos lobbySpawnPos) {
+    public void setLobbySpawnPos(BlockPos lobbySpawnPos, boolean fromCommand) {
+        if (this.lobbySpawnPos != null && !fromCommand) {
+            FTBTeamBases.LOGGER.error("ignored attempt to override lobby spawn pos (current {}, attempted {}})",
+                    MiscUtil.blockPosStr(this.lobbySpawnPos), MiscUtil.blockPosStr(lobbySpawnPos));
+        }
         this.lobbySpawnPos = lobbySpawnPos;
         setDirty();
     }
@@ -449,5 +451,13 @@ public class BaseInstanceManager extends SavedData {
 
     public boolean isPlayerKnown(ServerPlayer player) {
         return knownPlayers.contains(player.getUUID());
+    }
+
+    public void forceSave(MinecraftServer server) {
+        // this is a kludge, but we need to be 100% sure that base instance data gets saved when a base is created
+        // losing this info due to a server crash will cause serious subsequent problems for base sanity...
+        ServerLevel overworld = Objects.requireNonNull(server.getLevel(Level.OVERWORLD));
+        overworld.getChunkSource().getDataStorage().save();
+        FTBTeamBases.LOGGER.info("force-saved team bases data to data/{}.dat", SAVE_NAME);
     }
 }

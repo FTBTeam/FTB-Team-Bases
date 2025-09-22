@@ -42,8 +42,10 @@ public class LobbyPregen {
                 }
             }
             ServerConfig.lobbyPos().ifPresent(pos -> {
-                BaseInstanceManager.get(server).setLobbySpawnPos(pos);
-                BaseInstanceManager.get(server).setLobbyCreated(true);
+                BaseInstanceManager mgr = BaseInstanceManager.get(server);
+                mgr.setLobbySpawnPos(pos, false);
+                mgr.setLobbyCreated(true);
+                mgr.forceSave(server);
             });
             return true;
         }
