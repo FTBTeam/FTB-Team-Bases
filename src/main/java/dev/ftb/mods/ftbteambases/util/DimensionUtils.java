@@ -89,12 +89,6 @@ public class DimensionUtils {
         return chunkGenerator instanceof VoidChunkGenerator;
     }
 
-    public static void clearPlayerInventory(ServerPlayer serverPlayer) {
-        serverPlayer.getInventory().clearOrCountMatchingItems(arg -> true, -1, serverPlayer.inventoryMenu.getCraftSlots());
-        serverPlayer.containerMenu.broadcastChanges();
-        serverPlayer.inventoryMenu.slotsChanged(serverPlayer.getInventory());
-    }
-
     public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
         return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId)
                 .map(baseDef -> getHolderStream(holderLookup, baseDef))

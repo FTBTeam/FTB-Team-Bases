@@ -319,7 +319,7 @@ public class BaseInstanceManager extends SavedData {
     public void onPlayerLeaveTeam(@Nullable ServerPlayer player, UUID playerId) {
         if (player != null) {
             if (ServerConfig.CLEAR_PLAYER_INV_ON_LEAVE.get()) {
-                DimensionUtils.clearPlayerInventory(player);
+                MiscUtil.clearPlayerInventory(player);
             }
             teleportToLobby(player);
             FTBTeamBases.LOGGER.debug("player {} left team, sending back to lobby", playerId);

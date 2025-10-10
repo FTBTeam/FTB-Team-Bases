@@ -107,11 +107,19 @@ repositories {
 			includeGroup "curse.maven"
 		}
 	}
+
+	maven {
+		name = "Illusive Soulworks maven"
+		url = "https://maven.theillusivec4.top/"
+	}
 }
 
 dependencies {
 	implementation "dev.ftb.mods:ftb-library-neoforge:${ftb_library_version}"
 	implementation "dev.ftb.mods:ftb-teams-neoforge:${ftb_teams_version}"
+
+	compileOnly("top.theillusivec4.curios:curios-neoforge:${curios_version}:api")
+	localRuntime("top.theillusivec4.curios:curios-neoforge:${curios_version}")
 }
 
 tasks.register("sourcesJar", Jar) {

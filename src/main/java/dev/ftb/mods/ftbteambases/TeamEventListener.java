@@ -2,7 +2,7 @@ package dev.ftb.mods.ftbteambases;
 
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
-import dev.ftb.mods.ftbteambases.util.DimensionUtils;
+import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.event.PlayerJoinedPartyTeamEvent;
 import dev.ftb.mods.ftbteams.api.event.PlayerLeftPartyTeamEvent;
@@ -21,7 +21,7 @@ public class TeamEventListener {
         }
 
         if (ServerConfig.CLEAR_PLAYER_INV_ON_JOIN.get()) {
-            DimensionUtils.clearPlayerInventory(serverPlayer);
+            MiscUtil.clearPlayerInventory(serverPlayer);
         }
         if (ServerConfig.HEAL_PLAYER_ON_JOIN.get()) {
             serverPlayer.heal(serverPlayer.getMaxHealth());

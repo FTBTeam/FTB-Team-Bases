@@ -1,13 +1,16 @@
 package dev.ftb.mods.ftbteambases.util;
 
 import com.google.common.math.Stats;
+import dev.ftb.mods.ftbteambases.integration.CuriosIntegration;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ServerLevelData;
+import net.neoforged.fml.ModList;
 
 public class MiscUtil {
     public static String blockPosStr(BlockPos pos) {
@@ -33,5 +36,14 @@ public class MiscUtil {
         long[] times = server.getTickTime(key);
         if (times == null) times = new long[] { 0L };
         return Stats.meanOf(times) * 1.0E-6;
+    }
+
+    public static void clearPlayerInventory(ServerPlayer serverPlayer) {
+        serverPlayer.getInventory().clearOrCountMatchingItems(arg -> true, -1, serverPlayer.inventoryMenu.getCraftSlots());
+        serverPlayer.containerMenu.broadcastChanges();
+        serverPlayer.inventoryMenu.slotsChanged(serverPlayer.getInventory());
+        if (ModList.get().isLoaded("curios")) {
+            CuriosIntegration.clearCurios(serverPlayer);
+        }
     }
 }
