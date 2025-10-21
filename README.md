@@ -2,7 +2,7 @@
 
 ## Overview
 
-FTB Team Bases is a replacement in MC 1.20.1 for earlier base management mods, including FTB Team Dimensions, FTB Team Islands and FTB Dungeons, and includes functionality from all of those:
+FTB Team Bases is a replacement in MC 1.20.1+ for earlier base management mods, including FTB Team Dimensions, FTB Team Islands and FTB Dungeons, and includes functionality from all of those:
 
 * Creating bases in a static shared dimension (like FTB Team Islands; dimension ID is `ftbteambases:bases` by default)
 * Creating bases in a private per-team dimension (like FTB Team Dimensions)

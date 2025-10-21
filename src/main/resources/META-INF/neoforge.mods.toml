@@ -1,0 +1,45 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+#issueTrackerURL = ""
+license = "Insert License Here"
+
+[[mixins]]
+config = "ftbteambases.mixins.json"
+
+[[mods]]
+modId = "ftbteambases"
+version = "${version}"
+displayName = "FTB Team Bases"
+authors = "FTB Team"
+description = '''
+An extension to FTB Teams to provide multi-dimension support for FTB modpacks
+'''
+#logoFile = ""
+
+[[dependencies.ftbteambases]]
+modId = "neoforge"
+type = "required"
+versionRange = "${mod_loader_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.ftbteambases]]
+modId = "minecraft"
+type = "required"
+versionRange = "[${mcversion},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.ftbteambases]]
+modId = "ftbteams"
+type = "required"
+versionRange = "[${ftbteamsversion},)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.ftbteambases]]
+modId = "ftblibrary"
+type = "required"
+versionRange = "[${ftblibraryversion},)"
+ordering = "AFTER"
+side = "BOTH"
