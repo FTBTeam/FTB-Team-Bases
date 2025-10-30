@@ -23,6 +23,7 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,7 +48,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
             //   and not when loitering around in a portal block
             player.setPortalCooldown();
         } else {
-            TeamBasesPortalEvent event = new TeamBasesPortalEvent(player);
+            TeamBasesPortalEvent event = NeoForge.EVENT_BUS.post(new TeamBasesPortalEvent(player));
             if (!event.isCanceled()) {
                 FTBTeamsAPI.api().getManager().getTeamForPlayer(player).ifPresent(team -> {
                     if (team.isPartyTeam()) {
