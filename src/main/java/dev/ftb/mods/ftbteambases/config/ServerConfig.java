@@ -15,6 +15,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ServerConfig {
@@ -46,10 +47,6 @@ public interface ServerConfig {
     EnumValue<GameType> LOBBY_GAME_MODE = LOBBY.addEnum("lobby_game_mode", GAME_TYPE_NAME_MAP)
             .comment("The default game mode given to players when in the lobby.",
                     "Note that admin-mode players are free to change this.");
-    IntArrayValue LOBBY_SPAWN = LOBBY.addIntArray("lobby_spawn_pos", new int[]{ 0, 0, 0})
-            .comment("Position at which new players spawn. Only used if the lobby structure comes from a pregenerated region!");
-    StringValue LOBBY_DIMENSION = LOBBY.addString("lobby_dimension", "minecraft:overworld")
-            .comment("Dimension ID of the level in which the lobby is created. This *must* be a static pre-existing dimension, not a dynamically created one! New players will be automatically teleported to this dimension the first time they connect to the server. This setting should be defined in default config so the server has it before any levels are created - do NOT modify this on existing worlds!");
     DoubleValue LOBBY_PLAYER_YAW = LOBBY.addDouble("lobby_player_yaw", 0.0, 0.0, 360.0)
             .comment("Player Y-axis rotation when initially spawning in, or returning to, the lobby. (0 = south, 90 = west, 180 = north, 270 = east)");
 
@@ -105,25 +102,6 @@ public interface ServerConfig {
             return Optional.of(ResourceLocation.parse(LOBBY_STRUCTURE_LOCATION.get()));
         } catch (ResourceLocationException ignored) {
             FTBTeamBases.LOGGER.error("invalid lobby resource location: {}", LOBBY_STRUCTURE_LOCATION.get());
-            return Optional.empty();
-        }
-    }
-
-    static Optional<ResourceKey<Level>> lobbyDimension() {
-        try {
-            return Optional.of(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(LOBBY_DIMENSION.get())));
-        } catch (ResourceLocationException ignored) {
-            FTBTeamBases.LOGGER.error("invalid dimension ID in config 'lobby_dimension': {}", ServerConfig.LOBBY_DIMENSION.get());
-            return Optional.empty();
-        }
-    }
-
-    static Optional<BlockPos> lobbyPos() {
-        int[] pos = ServerConfig.LOBBY_SPAWN.get();
-        if (pos.length == 3) {
-            return Optional.of(new BlockPos(pos[0], pos[1], pos[2]));
-        } else {
-            FTBTeamBases.LOGGER.error("invalid lobby spawn pos! expected 3 integers, got {}", pos.length);
             return Optional.empty();
         }
     }
