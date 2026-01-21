@@ -36,6 +36,8 @@ public interface ServerConfig {
             .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
     IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 0, 0, 4)
             .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
+    BooleanValue ALLOW_LOBBY_SPECTATORS = GENERAL.addBoolean("allow_lobby_spectators", false)
+            .comment("If true, allow spectator-mode players to use the lobby portal");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
