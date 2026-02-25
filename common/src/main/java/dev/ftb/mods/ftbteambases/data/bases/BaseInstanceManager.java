@@ -75,7 +75,8 @@ public class BaseInstanceManager extends SavedData {
             Codec.BOOL.fieldOf("is_lobby_created").forGetter(mgr -> mgr.isLobbyCreated),
             BlockPos.CODEC.fieldOf("lobby_spawn_pos").forGetter(mgr -> mgr.lobbySpawnPos),
             NETHER_PORTAL_POS_CODEC.fieldOf("nether_portal_pos").forGetter(mgr -> mgr.playerNetherPortalLocs),
-            KNOWN_PLAYERS_CODEC.fieldOf("known_players").forGetter(mgr -> mgr.knownPlayers)
+            KNOWN_PLAYERS_CODEC.fieldOf("known_players").forGetter(mgr -> mgr.knownPlayers),
+            Codec.BOOL.optionalFieldOf("autoclaim_needed", true).forGetter(mgr -> mgr.autoclaimNeeded)
     ).apply(inst, BaseInstanceManager::new));
 
     // maps team UUID to live base details
@@ -94,11 +95,12 @@ public class BaseInstanceManager extends SavedData {
     private boolean isLobbyCreated;
     private BlockPos lobbySpawnPos;
     private int nextArchiveId;
+    private boolean autoclaimNeeded;
 
     private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos,
                                 Map<ResourceLocation, Integer> zOffsets, Map<String, ArchivedBaseDetails> archivedBases,
                                 int nextArchiveId, boolean isLobbyCreated, BlockPos lobbySpawnPos,
-                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers) {
+                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers, boolean autoclaimNeeded) {
         this.liveBases = liveBases;
         this.storedGenPos = genPos;
         this.storedZoffset = zOffsets;
@@ -108,11 +110,12 @@ public class BaseInstanceManager extends SavedData {
         this.lobbySpawnPos = lobbySpawnPos;
         this.playerNetherPortalLocs = netherPortalPos;
         this.knownPlayers = knownPlayers;
+        this.autoclaimNeeded = autoclaimNeeded;
     }
 
     private static BaseInstanceManager createNew() {
         return new BaseInstanceManager(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                0, false, BlockPos.ZERO, new HashMap<>(), new HashSet<>());
+                0, false, BlockPos.ZERO, new HashMap<>(), new HashSet<>(), true);
     }
 
     public static BaseInstanceManager get() {
@@ -382,5 +385,14 @@ public class BaseInstanceManager extends SavedData {
 
     public boolean isPlayerKnown(ServerPlayer player) {
         return knownPlayers.contains(player.getUUID());
+    }
+
+    public boolean isAutoclaimNeeded() {
+        return autoclaimNeeded;
+    }
+
+    public void setAutoclaimNeeded(boolean autoclaimNeeded) {
+        this.autoclaimNeeded = autoclaimNeeded;
+        setDirty();
     }
 }

@@ -54,6 +54,7 @@ public class CommandUtils {
                 .then(ArchiveCommand.register())
                 .then(PurgeCommand.register())
                 .then(SetLobbyPosCommand.register())
+                .then(RedoAutoclaimCommand.register())
         );
     }
 
