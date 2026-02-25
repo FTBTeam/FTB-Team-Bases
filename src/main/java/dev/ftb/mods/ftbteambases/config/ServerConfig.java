@@ -82,7 +82,8 @@ public interface ServerConfig {
             .comment("See 'use_custom_portal_y'.");
 
     SNBTConfig AUTOCLAIMING = CONFIG.addGroup("autoclaiming")
-            .comment("Autoclaim lobby areas (FTB Chunks required)");
+            .comment("Autoclaim lobby areas (FTB Chunks required)",
+                    "If you change any autoclaim settings after initial autoclaim is done, run '/ftbteambases redo_autoclaim'");
     IntValue LOBBY_RADIUS = AUTOCLAIMING.addInt("lobby_radius", 0, 0, Integer.MAX_VALUE)
             .comment("Radius in chunks for the lobby area to autoclaim",
                     "0 = autoclaiming disabled",
