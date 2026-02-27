@@ -15,6 +15,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ServerConfig {
@@ -35,6 +36,8 @@ public interface ServerConfig {
             .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
     IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 0, 0, 4)
             .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
+    BooleanValue ALLOW_LOBBY_SPECTATORS = GENERAL.addBoolean("allow_lobby_spectators", false)
+            .comment("If true, allow spectator-mode players to use the lobby portal");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
@@ -46,10 +49,6 @@ public interface ServerConfig {
     EnumValue<GameType> LOBBY_GAME_MODE = LOBBY.addEnum("lobby_game_mode", GAME_TYPE_NAME_MAP)
             .comment("The default game mode given to players when in the lobby.",
                     "Note that admin-mode players are free to change this.");
-    IntArrayValue LOBBY_SPAWN = LOBBY.addIntArray("lobby_spawn_pos", new int[]{ 0, 0, 0})
-            .comment("Position at which new players spawn. Only used if the lobby structure comes from a pregenerated region!");
-    StringValue LOBBY_DIMENSION = LOBBY.addString("lobby_dimension", "minecraft:overworld")
-            .comment("Dimension ID of the level in which the lobby is created. This *must* be a static pre-existing dimension, not a dynamically created one! New players will be automatically teleported to this dimension the first time they connect to the server. This setting should be defined in default config so the server has it before any levels are created - do NOT modify this on existing worlds!");
     DoubleValue LOBBY_PLAYER_YAW = LOBBY.addDouble("lobby_player_yaw", 0.0, 0.0, 360.0)
             .comment("Player Y-axis rotation when initially spawning in, or returning to, the lobby. (0 = south, 90 = west, 180 = north, 270 = east)");
 
@@ -83,7 +82,8 @@ public interface ServerConfig {
             .comment("See 'use_custom_portal_y'.");
 
     SNBTConfig AUTOCLAIMING = CONFIG.addGroup("autoclaiming")
-            .comment("Autoclaim lobby areas (FTB Chunks required)");
+            .comment("Autoclaim lobby areas (FTB Chunks required)",
+                    "If you change any autoclaim settings after initial autoclaim is done, run '/ftbteambases redo_autoclaim'");
     IntValue LOBBY_RADIUS = AUTOCLAIMING.addInt("lobby_radius", 0, 0, Integer.MAX_VALUE)
             .comment("Radius in chunks for the lobby area to autoclaim",
                     "0 = autoclaiming disabled",
@@ -105,25 +105,6 @@ public interface ServerConfig {
             return Optional.of(ResourceLocation.parse(LOBBY_STRUCTURE_LOCATION.get()));
         } catch (ResourceLocationException ignored) {
             FTBTeamBases.LOGGER.error("invalid lobby resource location: {}", LOBBY_STRUCTURE_LOCATION.get());
-            return Optional.empty();
-        }
-    }
-
-    static Optional<ResourceKey<Level>> lobbyDimension() {
-        try {
-            return Optional.of(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(LOBBY_DIMENSION.get())));
-        } catch (ResourceLocationException ignored) {
-            FTBTeamBases.LOGGER.error("invalid dimension ID in config 'lobby_dimension': {}", ServerConfig.LOBBY_DIMENSION.get());
-            return Optional.empty();
-        }
-    }
-
-    static Optional<BlockPos> lobbyPos() {
-        int[] pos = ServerConfig.LOBBY_SPAWN.get();
-        if (pos.length == 3) {
-            return Optional.of(new BlockPos(pos[0], pos[1], pos[2]));
-        } else {
-            FTBTeamBases.LOGGER.error("invalid lobby spawn pos! expected 3 integers, got {}", pos.length);
             return Optional.empty();
         }
     }

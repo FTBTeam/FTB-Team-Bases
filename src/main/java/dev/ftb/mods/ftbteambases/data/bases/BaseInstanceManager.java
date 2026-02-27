@@ -8,6 +8,7 @@ import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
+import dev.ftb.mods.ftbteambases.config.StartupConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.events.BaseArchivedEvent;
@@ -78,7 +79,8 @@ public class BaseInstanceManager extends SavedData {
             BlockPos.CODEC.fieldOf("lobby_spawn_pos").forGetter(mgr -> mgr.lobbySpawnPos),
             NETHER_PORTAL_POS_CODEC.fieldOf("nether_portal_pos").forGetter(mgr -> mgr.playerNetherPortalLocs),
             PLAYER_ID_LIST_CODEC.fieldOf("known_players").forGetter(mgr -> mgr.knownPlayers),
-            PLAYER_ID_LIST_CODEC.optionalFieldOf("orphaned_players", new HashSet<>()).forGetter(mgr -> mgr.orphanedPlayers)
+            PLAYER_ID_LIST_CODEC.optionalFieldOf("orphaned_players", new HashSet<>()).forGetter(mgr -> mgr.orphanedPlayers),
+            Codec.BOOL.optionalFieldOf("autoclaim_needed", true).forGetter(mgr -> mgr.autoclaimNeeded)
     ).apply(inst, BaseInstanceManager::new));
 
     // maps team UUID to live base details
@@ -99,11 +101,13 @@ public class BaseInstanceManager extends SavedData {
     private boolean isLobbyCreated;
     private @Nullable BlockPos lobbySpawnPos;
     private int nextArchiveId;
+    private boolean autoclaimNeeded;
 
     private BaseInstanceManager(Map<UUID, LiveBaseDetails> liveBases, Map<ResourceLocation, RegionCoords> genPos,
                                 Map<ResourceLocation, Integer> zOffsets, Map<String, ArchivedBaseDetails> archivedBases,
                                 int nextArchiveId, boolean isLobbyCreated, @Nullable BlockPos lobbySpawnPos,
-                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers, Set<UUID> orphanedPlayers) {
+                                Map<UUID,BlockPos> netherPortalPos, Set<UUID> knownPlayers, Set<UUID> orphanedPlayers,
+                                boolean autoclaimNeeded) {
         this.liveBases = liveBases;
         this.storedGenPos = genPos;
         this.storedZoffset = zOffsets;
@@ -118,7 +122,8 @@ public class BaseInstanceManager extends SavedData {
 
     private static BaseInstanceManager createNew() {
         return new BaseInstanceManager(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                0, false, null, new HashMap<>(), new HashSet<>(), new HashSet<>());
+                0, false, null, new HashMap<>(), new HashSet<>(), new HashSet<>(),
+                true);
     }
 
     public static BaseInstanceManager get() {
@@ -279,7 +284,7 @@ public class BaseInstanceManager extends SavedData {
 
     public boolean teleportToLobby(ServerPlayer serverPlayer) {
         if (lobbySpawnPos != null) {
-            ResourceKey<Level> destLevel = ServerConfig.lobbyDimension().orElse(Level.OVERWORLD);
+            ResourceKey<Level> destLevel = StartupConfig.lobbyDimension().orElse(Level.OVERWORLD);
             return DimensionUtils.teleport(serverPlayer, destLevel, lobbySpawnPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
         }
         return false;
@@ -450,6 +455,15 @@ public class BaseInstanceManager extends SavedData {
 
     public boolean isPlayerKnown(ServerPlayer player) {
         return knownPlayers.contains(player.getUUID());
+    }
+
+    public boolean isAutoclaimNeeded() {
+        return autoclaimNeeded;
+    }
+
+    public void setAutoclaimNeeded(boolean autoclaimNeeded) {
+        this.autoclaimNeeded = autoclaimNeeded;
+        setDirty();
     }
 
     public void forceSave(MinecraftServer server) {
