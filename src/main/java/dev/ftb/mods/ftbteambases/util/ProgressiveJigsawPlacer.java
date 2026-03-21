@@ -31,6 +31,8 @@ import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasLookup;
 import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
@@ -55,6 +57,12 @@ public class ProgressiveJigsawPlacer {
             jbe.setTarget(jigsawParams.target());
             jbe.setJoint(jigsawParams.jointType());
             workData = setupPieceQueue(level, jbe, jigsawParams.maxGenerationDepth());
+            if (workData != null) {
+                preGenerateChunks(level);
+            } else {
+                FTBTeamBases.LOGGER.error("Jigsaw placement failed: could not resolve template pool {} with target {}",
+                        jigsawParams.templatePool(), jigsawParams.target());
+            }
         } else {
             throw new FTBTeamBasesException("could not get jigsaw block entity at " + level.dimension().location() + " / " + startPos);
         }
@@ -82,7 +90,12 @@ public class ProgressiveJigsawPlacer {
     }
 
     public float getProgress() {
+        if (workData == null) return 0f;
         return 1f - ((float) workData.work().size() / workData.totalSize());
+    }
+
+    public boolean hasWorkData() {
+        return workData != null;
     }
 
     public boolean tick() {
@@ -100,6 +113,10 @@ public class ProgressiveJigsawPlacer {
             RandomSource random = level.getRandom();
 
             workUnit.piece().place(level, structureManager, chunkgenerator, random, BoundingBox.infinite(), workUnit.pos(), false);
+
+            BlockPos center = workUnit.piece().getBoundingBox().getCenter();
+            BlockState placed = level.getBlockState(center);
+            FTBTeamBases.LOGGER.debug("Placed piece at {}, center block: {}", center, placed);
 
             if (workData.work.isEmpty()) {
                 try {
@@ -120,6 +137,29 @@ public class ProgressiveJigsawPlacer {
 
     public CommandSourceStack getSource() {
         return source;
+    }
+
+    private void preGenerateChunks(ServerLevel level) {
+        BoundingBox bounds = null;
+        for (WorkUnit unit : workData.work()) {
+            BoundingBox pieceBounds = unit.piece().getBoundingBox();
+            if (bounds == null) {
+                bounds = pieceBounds;
+            } else {
+                bounds = bounds.encapsulate(pieceBounds);
+            }
+        }
+        if (bounds != null) {
+            int minChunkX = bounds.minX() >> 4;
+            int minChunkZ = bounds.minZ() >> 4;
+            int maxChunkX = bounds.maxX() >> 4;
+            int maxChunkZ = bounds.maxZ() >> 4;
+            for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+                for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                    level.getChunk(cx, cz, ChunkStatus.FULL, true);
+                }
+            }
+        }
     }
 
     private record WorkData(ServerLevel level, int totalSize, Deque<WorkUnit> work) {
