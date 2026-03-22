@@ -79,6 +79,6 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
         int z = xz.z();
         return yPos
                 .map(y -> new BlockPos(x, y, z))
-                .orElse(new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z));
+                .orElse(new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z));
     }
 }
