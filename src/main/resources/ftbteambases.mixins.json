@@ -9,6 +9,7 @@
   "mixins": [
     "BaseFireBlockMixin",
     "ChunkGeneratorAccess",
+    "EntityMixin",
     "LevelAccess",
     "NetherPortalBlockAccess",
     "NetherPortalBlockMixin",

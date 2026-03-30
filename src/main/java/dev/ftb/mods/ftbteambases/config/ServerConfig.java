@@ -36,6 +36,8 @@ public interface ServerConfig {
             .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
     IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 0, 0, 4)
             .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
+    BooleanValue ALLOW_LOBBY_SPECTATORS = GENERAL.addBoolean("allow_lobby_spectators", false)
+            .comment("If true, allow spectator-mode players to use the lobby portal");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
@@ -80,7 +82,8 @@ public interface ServerConfig {
             .comment("See 'use_custom_portal_y'.");
 
     SNBTConfig AUTOCLAIMING = CONFIG.addGroup("autoclaiming")
-            .comment("Autoclaim lobby areas (FTB Chunks required)");
+            .comment("Autoclaim lobby areas (FTB Chunks required)",
+                    "If you change any autoclaim settings after initial autoclaim is done, run '/ftbteambases redo_autoclaim'");
     IntValue LOBBY_RADIUS = AUTOCLAIMING.addInt("lobby_radius", 0, 0, Integer.MAX_VALUE)
             .comment("Radius in chunks for the lobby area to autoclaim",
                     "0 = autoclaiming disabled",

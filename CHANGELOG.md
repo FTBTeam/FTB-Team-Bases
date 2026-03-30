@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [21.1.11]
+
+### Added
+* Allow spectator players to go through lobby portals
+  * Added `allow_lobby_spectators` config setting to control this behaviour
+  * This can be useful in conjunction with `lobby_game_mode` being set to "spectator"
+
+### Fixed
+* Fixed some issues with automatic chunk claiming
+
 ## [21.1.10]
 
 ### Added

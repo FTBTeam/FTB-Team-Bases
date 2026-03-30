@@ -8,8 +8,10 @@ import dev.ftb.mods.ftbchunks.api.FTBChunksAPI;
 import dev.ftb.mods.ftblibrary.icon.Color4I;
 import dev.ftb.mods.ftblibrary.math.ChunkDimPos;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
+import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.config.StartupConfig;
+import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.TeamManager;
@@ -25,7 +27,10 @@ public class AutoClaiming {
 
     public static void handleLobbyAutoclaiming(ServerLevel serverLevel) {
         // at this point, it's safe to assume that FTB Chunks is present
-        if (ServerConfig.LOBBY_RADIUS.get() == 0 || StartupConfig.lobbyPos().isEmpty()) {
+        if (ServerConfig.LOBBY_RADIUS.get() == 0
+                || StartupConfig.lobbyPos().isEmpty()
+                || !BaseInstanceManager.get(serverLevel.getServer()).isAutoclaimNeeded())
+        {
             return;
         }
 
@@ -37,7 +42,7 @@ public class AutoClaiming {
 
             CommandSourceStack serverCmdSource = serverLevel.getServer().createCommandSourceStack();
             Team lobbyTeam = teamMgr.getTeamByID(LOBBY_SERVER_ID)
-                    .orElse(teamMgr.createServerTeam(serverCmdSource, teamName, null, lobbyTeamColor, LOBBY_SERVER_ID));
+                    .orElseGet(() -> tryCreateTeam(teamMgr, serverCmdSource, teamName, lobbyTeamColor));
 
             // in case they've changed in config...
             lobbyTeam.setProperty(TeamProperties.DISPLAY_NAME, teamName);
@@ -57,10 +62,21 @@ public class AutoClaiming {
                     claimed.increment();
                 }
             });
+
+            BaseInstanceManager.get(serverLevel.getServer()).setAutoclaimNeeded(false);
+
             FTBTeamBases.LOGGER.info("autoclaimed {} chunks around lobby pos {} ({}) for server team {}",
                     claimed.getValue(), StartupConfig.lobbyPos().get(), ServerConfig.LOBBY_SHAPE.get(), lobbyTeam.getShortName());
-        } catch (CommandSyntaxException e) {
+        } catch (FTBTeamBasesException e) {
             FTBTeamBases.LOGGER.error("can't create server team {}: {}", teamName, e.getMessage());
+        }
+    }
+
+    private static Team tryCreateTeam(TeamManager teamMgr, CommandSourceStack serverCmdSource, String teamName, Color4I lobbyTeamColor) {
+        try {
+            return teamMgr.createServerTeam(serverCmdSource, teamName, null, lobbyTeamColor, LOBBY_SERVER_ID);
+        } catch (CommandSyntaxException e) {
+            throw new FTBTeamBasesException(e.getMessage());
         }
     }
 }
