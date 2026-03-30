@@ -27,6 +27,7 @@ import java.util.Optional;
 import static dev.ftb.mods.ftbteambases.FTBTeamBases.rl;
 
 public record BaseDefinition(ResourceLocation id, DisplaySettings displaySettings, BlockPos spawnOffset,
+                             Optional<BlockPos> exactSpawn,
                              DimensionSettings dimensionSettings, ConstructionType constructionType, XZ extents)
 {
     public static final ResourceLocation DEFAULT_PREVIEW = rl("default");
@@ -38,19 +39,31 @@ public record BaseDefinition(ResourceLocation id, DisplaySettings displaySetting
             ResourceLocation.CODEC.fieldOf("id").forGetter(BaseDefinition::id),
             DisplaySettings.CODEC.fieldOf("display").forGetter(BaseDefinition::displaySettings),
             BlockPos.CODEC.optionalFieldOf("spawn_offset", BlockPos.ZERO).forGetter(BaseDefinition::spawnOffset),
+            BlockPos.CODEC.optionalFieldOf("exact_spawn").forGetter(BaseDefinition::exactSpawn),
             DimensionSettings.CODEC.fieldOf("dimension").forGetter(BaseDefinition::dimensionSettings),
             ConstructionType.CODEC.fieldOf("construction").forGetter(BaseDefinition::constructionType),
             XZ.CODEC.optionalFieldOf("extents", XZ.of(1,1)).forGetter(BaseDefinition::extents)
     ).apply(instance, BaseDefinition::new));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, BaseDefinition> STREAM_CODEC = StreamCodec.composite(
-            ResourceLocation.STREAM_CODEC, BaseDefinition::id,
-            DisplaySettings.STREAM_CODEC, BaseDefinition::displaySettings,
-            BlockPos.STREAM_CODEC, BaseDefinition::spawnOffset,
-            DimensionSettings.STREAM_CODEC, BaseDefinition::dimensionSettings,
-            ConstructionType.STREAM_CODEC, BaseDefinition::constructionType,
-            XZ.STREAM_CODEC, BaseDefinition::extents,
-            BaseDefinition::new
+    public static final StreamCodec<RegistryFriendlyByteBuf, BaseDefinition> STREAM_CODEC = StreamCodec.of(
+            (buf, def) -> {
+                ResourceLocation.STREAM_CODEC.encode(buf, def.id());
+                DisplaySettings.STREAM_CODEC.encode(buf, def.displaySettings());
+                BlockPos.STREAM_CODEC.encode(buf, def.spawnOffset());
+                buf.writeOptional(def.exactSpawn(), (b, pos) -> BlockPos.STREAM_CODEC.encode((RegistryFriendlyByteBuf) b, pos));
+                DimensionSettings.STREAM_CODEC.encode(buf, def.dimensionSettings());
+                ConstructionType.STREAM_CODEC.encode(buf, def.constructionType());
+                XZ.STREAM_CODEC.encode(buf, def.extents());
+            },
+            buf -> new BaseDefinition(
+                    ResourceLocation.STREAM_CODEC.decode(buf),
+                    DisplaySettings.STREAM_CODEC.decode(buf),
+                    BlockPos.STREAM_CODEC.decode(buf),
+                    buf.readOptional(b -> BlockPos.STREAM_CODEC.decode((RegistryFriendlyByteBuf) b)),
+                    DimensionSettings.STREAM_CODEC.decode(buf),
+                    ConstructionType.STREAM_CODEC.decode(buf),
+                    XZ.STREAM_CODEC.decode(buf)
+            )
     );
 
     public static Optional<BaseDefinition> fromJson(JsonElement element) {
