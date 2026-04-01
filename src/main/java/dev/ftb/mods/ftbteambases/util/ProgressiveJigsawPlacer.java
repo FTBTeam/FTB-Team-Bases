@@ -140,26 +140,18 @@ public class ProgressiveJigsawPlacer {
     }
 
     private void preGenerateChunks(ServerLevel level) {
-        BoundingBox bounds = null;
-        for (WorkUnit unit : workData.work()) {
-            BoundingBox pieceBounds = unit.piece().getBoundingBox();
-            if (bounds == null) {
-                bounds = pieceBounds;
-            } else {
-                bounds = bounds.encapsulate(pieceBounds);
-            }
-        }
-        if (bounds != null) {
-            int minChunkX = bounds.minX() >> 4;
-            int minChunkZ = bounds.minZ() >> 4;
-            int maxChunkX = bounds.maxX() >> 4;
-            int maxChunkZ = bounds.maxZ() >> 4;
-            for (int cx = minChunkX; cx <= maxChunkX; cx++) {
-                for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
-                    level.getChunk(cx, cz, ChunkStatus.FULL, true);
-                }
-            }
-        }
+        BoundingBox.encapsulatingBoxes(workData.work().stream().map(u -> u.piece().getBoundingBox()).toList())
+                .ifPresent(bounds -> {
+                    int minChunkX = bounds.minX() >> 4;
+                    int minChunkZ = bounds.minZ() >> 4;
+                    int maxChunkX = bounds.maxX() >> 4;
+                    int maxChunkZ = bounds.maxZ() >> 4;
+                    for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+                        for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                            level.getChunk(cx, cz, ChunkStatus.FULL, true);
+                        }
+                    }
+                });
     }
 
     private record WorkData(ServerLevel level, int totalSize, Deque<WorkUnit> work) {
