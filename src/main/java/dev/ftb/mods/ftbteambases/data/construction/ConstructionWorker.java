@@ -40,15 +40,21 @@ public interface ConstructionWorker {
     }
 
     /**
-     * Determine the default position for players to spawn for the given base type. This default implementation puts
-     * the player at the X/Z position returned by {@link #getSpawnXZ()}, offset by the spawn offset defined in the base
-     * definition, and at a Y position of the surface at that X/Z position, also offset by the base definition's offset.
+     * Determine the position for players to spawn for the given base type. If the base definition specifies an
+     * {@code absolute_spawn} position, that position is returned directly with no further calculation. Otherwise,
+     * the player is placed at the X/Z position returned by {@link #getSpawnXZ()}, offset by the spawn offset
+     * defined in the base definition, and at a Y position of the surface at that X/Z position, also offset by
+     * the base definition's Y offset.
      *
      * @param destLevel the level being spawned in
      * @param baseDefinition the base definition
      * @return a position where players should be spawned
      */
     default BlockPos getInitialSpawnPos(Level destLevel, BaseDefinition baseDefinition) {
+        if (baseDefinition.absoluteSpawn().isPresent()) {
+            return baseDefinition.absoluteSpawn().get();
+        }
+
         BlockPos offset = baseDefinition.spawnOffset();
         XZ spawnXZ = getSpawnXZ().offset(offset.getX(), offset.getZ());
         destLevel.getChunk(spawnXZ.x() >> 4, spawnXZ.z() >> 4);
