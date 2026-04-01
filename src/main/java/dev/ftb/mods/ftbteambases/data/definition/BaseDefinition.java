@@ -27,7 +27,7 @@ import java.util.Optional;
 import static dev.ftb.mods.ftbteambases.FTBTeamBases.rl;
 
 public record BaseDefinition(ResourceLocation id, DisplaySettings displaySettings, BlockPos spawnOffset,
-                             Optional<BlockPos> exactSpawn,
+                             Optional<BlockPos> absoluteSpawn,
                              DimensionSettings dimensionSettings, ConstructionType constructionType, XZ extents)
 {
     public static final ResourceLocation DEFAULT_PREVIEW = rl("default");
@@ -39,7 +39,7 @@ public record BaseDefinition(ResourceLocation id, DisplaySettings displaySetting
             ResourceLocation.CODEC.fieldOf("id").forGetter(BaseDefinition::id),
             DisplaySettings.CODEC.fieldOf("display").forGetter(BaseDefinition::displaySettings),
             BlockPos.CODEC.optionalFieldOf("spawn_offset", BlockPos.ZERO).forGetter(BaseDefinition::spawnOffset),
-            BlockPos.CODEC.optionalFieldOf("exact_spawn").forGetter(BaseDefinition::exactSpawn),
+            BlockPos.CODEC.optionalFieldOf("absolute_spawn").forGetter(BaseDefinition::absoluteSpawn),
             DimensionSettings.CODEC.fieldOf("dimension").forGetter(BaseDefinition::dimensionSettings),
             ConstructionType.CODEC.fieldOf("construction").forGetter(BaseDefinition::constructionType),
             XZ.CODEC.optionalFieldOf("extents", XZ.of(1,1)).forGetter(BaseDefinition::extents)
@@ -50,7 +50,7 @@ public record BaseDefinition(ResourceLocation id, DisplaySettings displaySetting
                 ResourceLocation.STREAM_CODEC.encode(buf, def.id());
                 DisplaySettings.STREAM_CODEC.encode(buf, def.displaySettings());
                 BlockPos.STREAM_CODEC.encode(buf, def.spawnOffset());
-                buf.writeOptional(def.exactSpawn(), (b, pos) -> BlockPos.STREAM_CODEC.encode((RegistryFriendlyByteBuf) b, pos));
+                buf.writeOptional(def.absoluteSpawn(), (b, pos) -> BlockPos.STREAM_CODEC.encode((RegistryFriendlyByteBuf) b, pos));
                 DimensionSettings.STREAM_CODEC.encode(buf, def.dimensionSettings());
                 ConstructionType.STREAM_CODEC.encode(buf, def.constructionType());
                 XZ.STREAM_CODEC.encode(buf, def.extents());
