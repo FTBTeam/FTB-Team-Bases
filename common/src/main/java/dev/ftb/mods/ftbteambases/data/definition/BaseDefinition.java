@@ -27,6 +27,7 @@ import java.util.Optional;
 import static dev.ftb.mods.ftbteambases.FTBTeamBases.rl;
 
 public record BaseDefinition(ResourceLocation id, String description, String author, BlockPos spawnOffset,
+                             Optional<BlockPos> absoluteSpawn,
                              boolean devMode, Optional<ResourceLocation> previewImage, int displayOrder,
                              DimensionSettings dimensionSettings, ConstructionType constructionType,
                              XZ extents)
@@ -47,6 +48,7 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
             Codec.STRING.fieldOf("description").forGetter(BaseDefinition::description),
             Codec.STRING.optionalFieldOf("author", "FTB Team").forGetter(BaseDefinition::author),
             BlockPos.CODEC.optionalFieldOf("spawn_offset", BlockPos.ZERO).forGetter(BaseDefinition::spawnOffset),
+            BlockPos.CODEC.optionalFieldOf("absolute_spawn").forGetter(BaseDefinition::absoluteSpawn),
             Codec.BOOL.optionalFieldOf("dev_mode", false).forGetter(BaseDefinition::devMode),
             ResourceLocation.CODEC.optionalFieldOf("preview_image").forGetter(BaseDefinition::previewImage),
             Codec.INT.optionalFieldOf("display_order", 0).forGetter(BaseDefinition::displayOrder),
@@ -82,6 +84,7 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
         buf.writeUtf(description);
         buf.writeUtf(author);
         buf.writeBlockPos(spawnOffset);
+        buf.writeOptional(absoluteSpawn, FriendlyByteBuf::writeBlockPos);
         buf.writeBoolean(devMode);
         buf.writeOptional(previewImage, FriendlyByteBuf::writeResourceLocation);
         buf.writeVarInt(displayOrder);
@@ -96,6 +99,7 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
         String desc = buf.readUtf();
         String author = buf.readUtf();
         BlockPos spawnOffset = buf.readBlockPos();
+        Optional<BlockPos> absoluteSpawn = buf.readOptional(FriendlyByteBuf::readBlockPos);
         boolean devMode = buf.readBoolean();
         Optional<ResourceLocation> previewImage = buf.readOptional(FriendlyByteBuf::readResourceLocation);
         int displayOrder = buf.readVarInt();
@@ -103,7 +107,7 @@ public record BaseDefinition(ResourceLocation id, String description, String aut
         ConstructionType type = ConstructionType.fromBytes(buf);
         XZ extents = XZ.of(buf.readVarInt(), buf.readVarInt());
 
-        return new BaseDefinition(id, desc, author, spawnOffset, devMode, previewImage, displayOrder, dimensionSettings, type, extents);
+        return new BaseDefinition(id, desc, author, spawnOffset, absoluteSpawn, devMode, previewImage, displayOrder, dimensionSettings, type, extents);
     }
 
     public boolean matchesName(String filterStr) {
