@@ -126,7 +126,7 @@ public class ProgressiveJigsawPlacer {
                 }
             }
 
-            return !workData.work().isEmpty();
+            return workData.work().isEmpty();
         } else {
             // shouldn't get here, but just in case...
             return true;
