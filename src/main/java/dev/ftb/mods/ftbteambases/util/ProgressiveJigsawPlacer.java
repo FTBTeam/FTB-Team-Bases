@@ -112,9 +112,11 @@ public class ProgressiveJigsawPlacer {
 
             workUnit.piece().place(level, structureManager, chunkgenerator, random, BoundingBox.infinite(), workUnit.pos(), false);
 
-            BlockPos center = workUnit.piece().getBoundingBox().getCenter();
-            BlockState placed = level.getBlockState(center);
-            FTBTeamBases.LOGGER.debug("Placed piece at {}, center block: {}", center, placed);
+            if (FTBTeamBases.LOGGER.isDebugEnabled()) {
+                BlockPos center = workUnit.piece().getBoundingBox().getCenter();
+                BlockState placed = level.getBlockState(center);
+                FTBTeamBases.LOGGER.debug("Placed piece at {}, center block: {}", center, placed);
+            }
 
             if (workData.work.isEmpty()) {
                 try {
