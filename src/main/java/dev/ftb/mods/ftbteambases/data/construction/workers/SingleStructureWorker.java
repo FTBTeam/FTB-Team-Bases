@@ -41,7 +41,10 @@ public class SingleStructureWorker extends AbstractStructureWorker {
         BlockPos origin = getPlacementOrigin(serverLevel, getSpawnXZ(), singleStructure.yPos());
         BlockPos templatePos = origin.offset(-(template.getSize().getX() / 2), 0, -(template.getSize().getZ() / 2));
 
-        DimensionUtils.preGenerateChunks(serverLevel, BoundingBox.fromCorners(templatePos, templatePos.offset(template.getSize())));
+        DimensionUtils.preGenerateChunks(serverLevel, BoundingBox.fromCorners(
+                templatePos,
+                templatePos.offset(template.getSize().getX() - 1, template.getSize().getY() - 1, template.getSize().getZ() - 1)
+        ));
 
         template.placeInWorld(serverLevel, templatePos, templatePos, placeSettings, serverLevel.random, Block.UPDATE_ALL);
 
