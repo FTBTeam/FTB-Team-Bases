@@ -31,8 +31,6 @@ import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasLookup;
 import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
-import net.minecraft.world.level.chunk.status.ChunkStatus;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
@@ -139,19 +137,13 @@ public class ProgressiveJigsawPlacer {
         return source;
     }
 
+    public BlockPos getStartPos() {
+        return startPos;
+    }
+
     private void preGenerateChunks(ServerLevel level) {
         BoundingBox.encapsulatingBoxes(workData.work().stream().map(u -> u.piece().getBoundingBox()).toList())
-                .ifPresent(bounds -> {
-                    int minChunkX = bounds.minX() >> 4;
-                    int minChunkZ = bounds.minZ() >> 4;
-                    int maxChunkX = bounds.maxX() >> 4;
-                    int maxChunkZ = bounds.maxZ() >> 4;
-                    for (int cx = minChunkX; cx <= maxChunkX; cx++) {
-                        for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
-                            level.getChunk(cx, cz, ChunkStatus.FULL, true);
-                        }
-                    }
-                });
+                .ifPresent(bounds -> DimensionUtils.preGenerateChunks(level, bounds));
     }
 
     private record WorkData(ServerLevel level, int totalSize, Deque<WorkUnit> work) {
