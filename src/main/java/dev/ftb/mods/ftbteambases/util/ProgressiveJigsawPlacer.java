@@ -58,6 +58,7 @@ public class ProgressiveJigsawPlacer {
             if (workData != null) {
                 preGenerateChunks(level);
             } else {
+                level.setBlock(startPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                 FTBTeamBases.LOGGER.error("Jigsaw placement failed: could not resolve template pool {} with target {}",
                         jigsawParams.templatePool(), jigsawParams.target());
             }
