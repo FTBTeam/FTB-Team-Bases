@@ -179,8 +179,8 @@ public class FTBTeamBases {
                 // Send new players to the lobby. Note that respawn position after death is handled by
                 //   the PlayerRespawnPositionEvent handler, so we don't use player.setRespawnPosition() anymore
                 BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
-                player.teleportTo(destLevel, lobbySpawnPos.getX(), lobbySpawnPos.getY(), lobbySpawnPos.getZ(),
-                        ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), -10F);
+                DimensionUtils.teleport(player, destLevel.dimension(), lobbySpawnPos, 
+                        ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
                 BaseInstanceManager.get().addKnownPlayer(player);
             }
 

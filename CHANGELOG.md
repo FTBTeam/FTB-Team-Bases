@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [21.1.12]
+
+### Added
+* Added an `absolute_spawn` position to bypass offet spawn locations
+
+### Fixed
+* Resolved a weird edge-case with dimension loading + teleporting. This could cause players to get stuck in a weird timing state.
+
 ## [21.1.11]
 
 ### Added
