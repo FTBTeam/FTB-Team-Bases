@@ -118,6 +118,7 @@ public class BaseInstanceManager extends SavedData {
         this.playerNetherPortalLocs = netherPortalPos;
         this.knownPlayers = knownPlayers;
         this.orphanedPlayers = orphanedPlayers;
+        this.autoclaimNeeded = autoclaimNeeded;
     }
 
     private static BaseInstanceManager createNew() {

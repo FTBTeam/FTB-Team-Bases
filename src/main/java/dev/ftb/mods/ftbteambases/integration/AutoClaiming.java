@@ -26,6 +26,9 @@ public class AutoClaiming {
     private static final UUID LOBBY_SERVER_ID = UUID.fromString("ddc10a3e-b566-4e84-af66-8c315272ab02");
 
     public static void handleLobbyAutoclaiming(ServerLevel serverLevel) {
+        FTBTeamBases.LOGGER.debug("lobby autoclaim: claim radius = {}, lobbyPos = {}, autoclaim_needed = {}",
+                ServerConfig.LOBBY_RADIUS.get(), StartupConfig.lobbyPos(), BaseInstanceManager.get(serverLevel.getServer()).isAutoclaimNeeded());
+
         // at this point, it's safe to assume that FTB Chunks is present
         if (ServerConfig.LOBBY_RADIUS.get() == 0
                 || StartupConfig.lobbyPos().isEmpty()
