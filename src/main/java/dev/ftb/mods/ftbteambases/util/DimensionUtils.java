@@ -35,6 +35,9 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -159,5 +162,19 @@ public class DimensionUtils {
 
             FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().getName(), pos, level.dimension().location());
         }));
+    }
+
+    public static void preGenerateChunks(ServerLevel level, BoundingBox bounds) {
+        if (!isVoidChunkGen(level.getChunkSource().getGenerator())) {
+            int minChunkX = bounds.minX() >> 4;
+            int minChunkZ = bounds.minZ() >> 4;
+            int maxChunkX = bounds.maxX() >> 4;
+            int maxChunkZ = bounds.maxZ() >> 4;
+            for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+                for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                    level.getChunk(cx, cz, ChunkStatus.FULL, true);
+                }
+            }
+        }
     }
 }

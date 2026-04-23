@@ -55,6 +55,13 @@ public class ProgressiveJigsawPlacer {
             jbe.setTarget(jigsawParams.target());
             jbe.setJoint(jigsawParams.jointType());
             workData = setupPieceQueue(level, jbe, jigsawParams.maxGenerationDepth());
+            if (workData != null) {
+                preGenerateChunks(level);
+            } else {
+                level.setBlock(startPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                FTBTeamBases.LOGGER.error("Jigsaw placement failed: could not resolve template pool {} with target {}",
+                        jigsawParams.templatePool(), jigsawParams.target());
+            }
         } else {
             throw new FTBTeamBasesException("could not get jigsaw block entity at " + level.dimension().location() + " / " + startPos);
         }
@@ -82,7 +89,12 @@ public class ProgressiveJigsawPlacer {
     }
 
     public float getProgress() {
+        if (workData == null) return 0f;
         return 1f - ((float) workData.work().size() / workData.totalSize());
+    }
+
+    public boolean hasWorkData() {
+        return workData != null;
     }
 
     public boolean tick() {
@@ -101,6 +113,12 @@ public class ProgressiveJigsawPlacer {
 
             workUnit.piece().place(level, structureManager, chunkgenerator, random, BoundingBox.infinite(), workUnit.pos(), false);
 
+            if (FTBTeamBases.LOGGER.isDebugEnabled()) {
+                BlockPos center = workUnit.piece().getBoundingBox().getCenter();
+                BlockState placed = level.getBlockState(center);
+                FTBTeamBases.LOGGER.debug("Placed piece at {}, center block: {}", center, placed);
+            }
+
             if (workData.work.isEmpty()) {
                 try {
                     BlockState state = BlockStateParser.parseForBlock(level.holderLookup(Registries.BLOCK), jigsawParams.finalState(), false).blockState();
@@ -111,7 +129,7 @@ public class ProgressiveJigsawPlacer {
                 }
             }
 
-            return !workData.work().isEmpty();
+            return workData.work().isEmpty();
         } else {
             // shouldn't get here, but just in case...
             return true;
@@ -120,6 +138,15 @@ public class ProgressiveJigsawPlacer {
 
     public CommandSourceStack getSource() {
         return source;
+    }
+
+    public BlockPos getStartPos() {
+        return startPos;
+    }
+
+    private void preGenerateChunks(ServerLevel level) {
+        BoundingBox.encapsulatingBoxes(workData.work().stream().map(u -> u.piece().getBoundingBox()).toList())
+                .ifPresent(bounds -> DimensionUtils.preGenerateChunks(level, bounds));
     }
 
     private record WorkData(ServerLevel level, int totalSize, Deque<WorkUnit> work) {
