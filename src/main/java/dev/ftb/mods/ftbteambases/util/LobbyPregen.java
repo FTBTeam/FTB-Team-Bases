@@ -13,12 +13,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class LobbyPregen {
     private static final Path PREGEN_INITIAL_PATH = Path.of(FTBTeamBases.MOD_ID, "pregen_initial");
-
-    private static final List<Path> INITIAL_SUBDIRS = Stream.of("region", "entities", "poi", "DIM1", "DIM-1").map(Path::of).toList();
 
     public static boolean maybePregenLobby(MinecraftServer server) {
         Path initialPath = server.getServerDirectory().resolve(PREGEN_INITIAL_PATH);
@@ -32,8 +31,8 @@ public class LobbyPregen {
         // This is a brand-new world - copy over any pregen MCA files
         boolean copiedAnything = false;
 
-        // Copy lobby/overworld pregen files (region, entities, poi, DIM1, DIM-1)
-        List<Path> lobbySubDirs = new ArrayList<>(INITIAL_SUBDIRS);
+        // Copy lobby/overworld pregen files (region, entities, poi, DIM1, DIM-1) - defined in startup config
+        List<Path> lobbySubDirs = StartupConfig.pregenInitialSubdirs();
         addLobbyExtras(lobbySubDirs);
 
         for (Path subDir : lobbySubDirs) {
