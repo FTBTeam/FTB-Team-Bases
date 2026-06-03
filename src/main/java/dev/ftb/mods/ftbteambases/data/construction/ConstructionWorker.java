@@ -58,7 +58,7 @@ public interface ConstructionWorker {
         BlockPos offset = baseDefinition.spawnOffset();
         XZ spawnXZ = getSpawnXZ().offset(offset.getX(), offset.getZ());
         destLevel.getChunk(spawnXZ.x() >> 4, spawnXZ.z() >> 4);
-        int yPos = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE, spawnXZ.x(), spawnXZ.z());
+        int yPos = destLevel.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, spawnXZ.x(), spawnXZ.z());
 
         if (yPos > destLevel.getMinBuildHeight()) {
             return new BlockPos(spawnXZ.x(), yPos, spawnXZ.z()).above(offset.getY());
@@ -71,7 +71,7 @@ public interface ConstructionWorker {
         // oops, this spot's over the void. try to find a safe spot nearby to avoid pain and suffering
         BlockPos start = new BlockPos(spawnXZ.x() - 8, 0, spawnXZ.z() - 8);
         for (BlockPos.MutableBlockPos pos : BlockPos.spiralAround(start, 16, Direction.EAST, Direction.SOUTH)) {
-            int y = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE, pos.getX(), pos.getZ());
+            int y = destLevel.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
             if (y > destLevel.getMinBuildHeight()) {
                 return new BlockPos(pos.getX(), y + 1, pos.getZ());
             }
