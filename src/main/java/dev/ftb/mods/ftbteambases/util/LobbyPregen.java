@@ -38,10 +38,8 @@ public class LobbyPregen {
         for (Path subDir : lobbySubDirs) {
             Path srcDir = initialPath.resolve(subDir);
             Path destDir = worldPath.resolve(subDir);
-            if (Files.isDirectory(srcDir) && !Files.isDirectory(destDir)) {
-                if (copyDirectory(srcDir, destDir)) {
-                    copiedAnything = true;
-                }
+            if (okToCopy(srcDir, destDir) && copyDirectory(srcDir, destDir)) {
+                copiedAnything = true;
             }
         }
 
@@ -51,11 +49,9 @@ public class LobbyPregen {
             Path srcDir = initialPath.resolve(dimPath);
             Path destDir = worldPath.resolve(dimPath);
 
-            if (Files.isDirectory(srcDir) && !Files.isDirectory(destDir.resolve("region"))) {
-                if (copyDirectory(srcDir, destDir)) {
-                    copiedAnything = true;
-                    FTBTeamBases.LOGGER.info("Copied additional pregen dimension: {}", rl);
-                }
+            if (okToCopy(srcDir, destDir.resolve("region")) && copyDirectory(srcDir, destDir)) {
+                copiedAnything = true;
+                FTBTeamBases.LOGGER.info("Copied additional pregen dimension: {}", rl);
             }
         }
 
@@ -69,6 +65,19 @@ public class LobbyPregen {
         }
 
         return copiedAnything;
+    }
+
+    private static boolean okToCopy(Path srcDir, Path dstDir) {
+        // src dir must exist, and dst dir must either not exist or be empty
+        if (!Files.isDirectory(srcDir) || !Files.isDirectory(dstDir)) {
+            return false;
+        }
+        try (Stream<Path> entries = Files.list(dstDir)) {
+            return entries.findFirst().isEmpty();
+        } catch (IOException e) {
+            FTBTeamBases.LOGGER.error("can't list directory {}: {}", dstDir, e.getMessage());
+            return false;
+        }
     }
 
     private static boolean copyDirectory(Path srcDir, Path destDir) {
