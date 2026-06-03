@@ -9,7 +9,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.entity.PersistentEntitySectionManager;
@@ -19,10 +19,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public record OpenVisitScreenMessage(Map<ResourceLocation, List<BaseData>> dimensionData) implements CustomPacketPayload {
-    public static final Type<OpenVisitScreenMessage> TYPE = new Type<>(FTBTeamBases.rl("open_visit_screen"));
+public record OpenVisitScreenMessage(Map<Identifier, List<BaseData>> dimensionData) implements CustomPacketPayload {
+    public static final Type<OpenVisitScreenMessage> TYPE = new Type<>(FTBTeamBases.id("open_visit_screen"));
     public static final StreamCodec<FriendlyByteBuf, OpenVisitScreenMessage> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.map(HashMap::newHashMap, ResourceLocation.STREAM_CODEC, BaseData.STREAM_CODEC.apply(ByteBufCodecs.list())), OpenVisitScreenMessage::dimensionData,
+            ByteBufCodecs.map(HashMap::newHashMap, Identifier.STREAM_CODEC, BaseData.STREAM_CODEC.apply(ByteBufCodecs.list())), OpenVisitScreenMessage::dimensionData,
             OpenVisitScreenMessage::new
     );
 

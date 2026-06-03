@@ -1,10 +1,9 @@
 package dev.ftb.mods.ftbteambases.data.construction.workers;
 
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
-import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.JigsawParams;
 import dev.ftb.mods.ftbteambases.util.ProgressiveJigsawPlacer;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -19,7 +18,7 @@ public class JigsawWorker extends AbstractStructureWorker {
     public JigsawWorker(ServerPlayer player, BaseDefinition baseDefinition, JigsawParams jigsawParams, boolean privateDimension) {
         super(player, baseDefinition, privateDimension);
 
-        ServerLevel serverLevel = getOrCreateLevel(player.getServer());
+        ServerLevel serverLevel = getOrCreateLevel(player.level().getServer());
         BlockPos origin = getPlacementOrigin(serverLevel, getSpawnXZ(), jigsawParams.yPos())
                 .offset(jigsawParams.generationOffset().orElse(BlockPos.ZERO));
 
@@ -30,12 +29,7 @@ public class JigsawWorker extends AbstractStructureWorker {
     public void startConstruction(BooleanConsumer onCompleted) {
         super.startConstruction(onCompleted);
 
-        ServerLevel level = getOrCreateLevel(placer.getSource().getServer());
-        if (level == null) {
-            throw new FTBTeamBasesException("Jigsaw Worker: can't get/create dimension " + getDimension().location());
-        }
-
-        placer.start(level);
+        placer.start(getOrCreateLevel(placer.getSource().getServer()));
     }
 
     @Override
@@ -45,7 +39,7 @@ public class JigsawWorker extends AbstractStructureWorker {
         ServerPlayer player = placer.getSource().getPlayer();
         if (player != null) {
             int pct = (int)(100 * placer.getProgress());
-            player.displayClientMessage(Component.literal("Progress: " + pct + "%"), true);
+            player.sendOverlayMessage(Component.literal("Progress: " + pct + "%"));
         }
 
         if (done) {

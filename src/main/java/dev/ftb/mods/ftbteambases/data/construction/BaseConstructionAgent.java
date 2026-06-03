@@ -8,10 +8,12 @@ import dev.ftb.mods.ftbteambases.events.BaseCreatedEvent;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.PlayerTeam;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.common.NeoForge;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -27,7 +29,7 @@ public class BaseConstructionAgent {
         this.baseDefinition = baseDefinition;
 
         playerId = player.getUUID();
-        server = player.getServer();
+        server = player.level().getServer();
         try {
             constructionWorker = baseDefinition.createConstructionWorker(player);
             constructionWorker.startConstruction(this::onCompleted);
@@ -39,7 +41,7 @@ public class BaseConstructionAgent {
     private void onCompleted(boolean success) {
         done = true;
 
-        if (server != null && success) {
+        if (success) {
             Level destLevel = server.getLevel(constructionWorker.getDimension());
             if (destLevel == null) {
                 // shouldn't happen!
@@ -61,12 +63,12 @@ public class BaseConstructionAgent {
                             BaseInstanceManager.get(server).teleportToBaseSpawn(player, party.getId());
                         }
                         FTBTeamBases.LOGGER.info("team base created for player id {}, party id = {}, dim id = {}, type = {}",
-                                playerId, party.getId(), destLevel.dimension().location(), baseDefinition.id());
+                                playerId, party.getId(), destLevel.dimension().identifier(), baseDefinition.id());
 
-                        BaseCreatedEvent.CREATED.invoker().created(BaseInstanceManager.get(server), player, party);
+                        NeoForge.EVENT_BUS.post(new BaseCreatedEvent(BaseInstanceManager.get(server), player, party));
                     } catch (IllegalStateException e) {
                         if (player != null) {
-                            player.displayClientMessage(Component.literal("can't create party team for you! " + e.getMessage()), false);
+                            player.sendSystemMessage(Component.literal("can't create party team for you! " + e.getMessage()).withStyle(ChatFormatting.RED));
                         }
                         FTBTeamBases.LOGGER.error("can't create party team for player {}: {}", playerId, e.getMessage());
                     }

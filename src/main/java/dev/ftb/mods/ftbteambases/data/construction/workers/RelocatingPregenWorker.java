@@ -1,7 +1,6 @@
 package dev.ftb.mods.ftbteambases.data.construction.workers;
 
 import dev.ftb.mods.ftblibrary.math.XZ;
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
@@ -12,6 +11,7 @@ import dev.ftb.mods.ftbteambases.util.RegionCoords;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
 import dev.ftb.mods.ftbteambases.util.RegionFileRelocator;
 import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -43,7 +43,7 @@ public class RelocatingPregenWorker implements ConstructionWorker {
                 .orElseThrow(() -> new FTBTeamBasesException("no region files in " + pregenDir));
 
         dimensionKey = ResourceKey.create(Registries.DIMENSION, baseDefinition.dimensionSettings().dimensionId().orElse(FTBTeamBases.SHARED_DIMENSION_ID));
-        RegionCoords startRegion = BaseInstanceManager.get(server).nextGenerationPos(server, baseDefinition, dimensionKey.location(), extents.getSize());
+        RegionCoords startRegion = BaseInstanceManager.get(server).nextGenerationPos(server, baseDefinition, dimensionKey.identifier(), extents.getSize());
 
         // this canonicalises the pregen region coords, so they effectively start at (0,0)
         //   so will be copied to exactly the place we expect in the target dimension
@@ -57,7 +57,7 @@ public class RelocatingPregenWorker implements ConstructionWorker {
         ServerPlayer player = relocator.getSource().getPlayer();
         if (player != null) {
             int pct = (int)(100 * relocator.getProgress());
-            player.displayClientMessage(Component.literal("Progress: " + pct + "%"), true);
+            player.sendOverlayMessage(Component.literal("Progress: " + pct + "%"));
         }
     }
 

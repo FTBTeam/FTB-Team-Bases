@@ -1,11 +1,14 @@
 package dev.ftb.mods.ftbteambases.util;
 
 import dev.ftb.mods.ftblibrary.math.XZ;
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.data.construction.RelocatorTracker;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.LongArrayTag;
+import net.minecraft.nbt.LongTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.TickTask;
 import net.minecraft.world.level.ChunkPos;
@@ -122,7 +125,7 @@ public class RegionFileRelocator {
                         }
                         RelocatorTracker.INSTANCE.remove(this);
                         // callback gets run in the main thread via server.tell()
-                        source.getServer().tell(
+                        source.getServer().schedule(
                                 new TickTask(source.getServer().getTickCount() + 1, () -> onCompleted.accept(result))
                         );
                     }
@@ -193,24 +196,26 @@ public class RegionFileRelocator {
                     CompoundTag chunkData = storage.read(newChunkPos);
                     if (chunkData != null) {
                         // primary x/z chunkpos
-                        chunkData.putInt("xPos", newChunkPos.x);
-                        chunkData.putInt("zPos", newChunkPos.z);
+                        chunkData.putInt("xPos", newChunkPos.x());
+                        chunkData.putInt("zPos", newChunkPos.z());
 
                         // structure references
-                        CompoundTag s = chunkData.getCompound("structures").getCompound("References");
-                        for (String key : s.getAllKeys()) {
+                        CompoundTag s = chunkData.getCompoundOrEmpty("structures").getCompoundOrEmpty("References");
+                        for (String key : s.keySet()) {
                             if (s.get(key) instanceof LongArrayTag a) {
                                 ListTag l2 = new ListTag();
                                 a.forEach(tag -> {
-                                    ChunkPos oldChunkPos = new ChunkPos(tag.getAsLong());
-                                    l2.add(LongTag.valueOf(new ChunkPos(oldChunkPos.x + xOff * 32, oldChunkPos.z + zOff * 32).toLong()));
+                                    if (tag instanceof LongTag longTag) {
+                                        ChunkPos oldChunkPos = ChunkPos.unpack(longTag.longValue());
+                                        l2.add(LongTag.valueOf(new ChunkPos(oldChunkPos.x() + xOff * 32, oldChunkPos.z() + zOff * 32).pack()));
+                                    }
                                 });
                                 s.put(key, l2);
                             }
                         }
 
                         // block entities
-                        chunkData.getList("block_entities", Tag.TAG_COMPOUND).forEach(tag -> {
+                        chunkData.getListOrEmpty("block_entities").forEach(tag -> {
                             if (tag instanceof CompoundTag c) {
                                 // all block entities
                                 updateIfPresent(c, "x", xOff);
@@ -229,7 +234,7 @@ public class RegionFileRelocator {
 
                         // pending block & fluid ticks (flowing water, fire, leaf decay, etc.)
                         List.of("block_ticks", "fluid_ticks")
-                                .forEach(what -> chunkData.getList(what, Tag.TAG_COMPOUND).forEach(tag -> {
+                                .forEach(what -> chunkData.getListOrEmpty(what).forEach(tag -> {
                                             if (tag instanceof CompoundTag c) {
                                                 updateIfPresent(c, "x", xOff);
                                                 updateIfPresent(c, "z", zOff);
@@ -252,11 +257,20 @@ public class RegionFileRelocator {
 
     private static void updateIfPresent(CompoundTag tag, String key, int offset) {
         // 512: region offset -> block offset
-        if (tag.contains(key, Tag.TAG_INT)) tag.putInt(key, tag.getInt(key) + offset * 512);
+        if (tag.contains(key)) {
+            tag.putInt(key, tag.getIntOr(key, 0) + offset * 512);
+        }
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static void updateIfPresent(Optional<CompoundTag> tagOptional, String key, int offset) {
+        // 512: region offset -> block offset
+        tagOptional.ifPresent(tag -> updateIfPresent(tag, key, offset));
     }
 
     private static void logError(Exception e, String msg, Object... args) {
-        FTBTeamBases.LOGGER.error("{}: " + msg, e.getClass().getSimpleName(), args);
+        final String tmpl = "{}: " + msg;
+        FTBTeamBases.LOGGER.error(tmpl, e.getClass().getSimpleName(), args);
     }
 
     public record RelocationData(RegionCoords orig, XZ regionOffset) {

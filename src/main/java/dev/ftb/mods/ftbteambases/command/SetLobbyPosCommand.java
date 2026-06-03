@@ -7,11 +7,11 @@ import dev.ftb.mods.ftbteambases.config.StartupConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.storage.LevelData;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -19,7 +19,7 @@ import static net.minecraft.commands.Commands.literal;
 public class SetLobbyPosCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("setlobbypos")
-                .requires(ctx -> ctx.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(argument("pos", BlockPosArgument.blockPos())
                         .executes(ctx -> setLobbyPos(ctx.getSource(), BlockPosArgument.getBlockPos(ctx, "pos")))
                 );
@@ -33,7 +33,8 @@ public class SetLobbyPosCommand {
         StartupConfig.lobbyDimension().ifPresent(dim -> {
             ServerLevel level = source.getServer().getLevel(dim);
             if (level != null) {
-                level.setDefaultSpawnPos(pos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
+                LevelData.RespawnData respawnData = LevelData.RespawnData.of(level.dimension(), pos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), 0F);
+                level.setRespawnData(respawnData);
             }
         });
 

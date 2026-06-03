@@ -31,8 +31,8 @@ public abstract class ClientLevelDataMixin implements VoidTeamLevelData {
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "getClearColorScale", cancellable = true)
-    private void onGetClearColorScale(CallbackInfoReturnable<Float> cir) {
+    @Inject(at = @At("HEAD"), method = "voidDarknessOnsetRange", cancellable = true)
+    private void onVoidDarknessOnsetRange(CallbackInfoReturnable<Float> cir) {
         if (ftb$voidTeamDimension && ClientConfig.HIDE_VOID_FOG.get()) {
             cir.setReturnValue(1.0F);
         }

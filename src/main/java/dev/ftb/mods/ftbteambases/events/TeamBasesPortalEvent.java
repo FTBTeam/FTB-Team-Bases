@@ -1,4 +1,4 @@
-package dev.ftb.mods.ftbteambases.events.neoforge;
+package dev.ftb.mods.ftbteambases.events;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;

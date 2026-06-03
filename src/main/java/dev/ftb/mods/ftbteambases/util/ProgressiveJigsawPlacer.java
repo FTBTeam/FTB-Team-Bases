@@ -28,8 +28,10 @@ import net.minecraft.world.level.levelgen.structure.pools.DimensionPadding;
 import net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement;
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
 import net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasLookup;
+import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -39,6 +41,7 @@ public class ProgressiveJigsawPlacer {
     private final CommandSourceStack source;
     private final JigsawParams jigsawParams;
     private final BlockPos startPos;
+    @Nullable
     private WorkData workData;
 
     public ProgressiveJigsawPlacer(CommandSourceStack source, JigsawParams jigsawParams, BlockPos startPos) {
@@ -56,21 +59,22 @@ public class ProgressiveJigsawPlacer {
             jbe.setJoint(jigsawParams.jointType());
             workData = setupPieceQueue(level, jbe, jigsawParams.maxGenerationDepth());
         } else {
-            throw new FTBTeamBasesException("could not get jigsaw block entity at " + level.dimension().location() + " / " + startPos);
+            throw new FTBTeamBasesException("could not get jigsaw block entity at " + level.dimension().identifier() + " / " + startPos);
         }
     }
 
+    @Nullable
     private WorkData setupPieceQueue(ServerLevel level, JigsawBlockEntity jbe, int maxDepth) {
         ChunkGenerator chunkgenerator = level.getChunkSource().getGenerator();
         StructureTemplateManager structuretemplatemanager = level.getStructureManager();
         BlockPos origin = jbe.getBlockPos().relative(jbe.getBlockState().getValue(JigsawBlock.ORIENTATION).front());
         Structure.GenerationContext context = new Structure.GenerationContext(level.registryAccess(), chunkgenerator,
                 chunkgenerator.getBiomeSource(), level.getChunkSource().randomState(), structuretemplatemanager,
-                level.getSeed(), new ChunkPos(origin), level, biome -> true);
-        Holder<StructureTemplatePool> holder = level.registryAccess().registryOrThrow(Registries.TEMPLATE_POOL)
-                .getHolderOrThrow(jbe.getPool());
+                level.getSeed(), ChunkPos.containing(origin), level, biome -> true);
+        Holder<StructureTemplatePool> holder = level.registryAccess().lookupOrThrow(Registries.TEMPLATE_POOL)
+                .getOrThrow(jbe.getPool());
 
-        return JigsawPlacement.addPieces(context, holder, Optional.of(jbe.getTarget()), maxDepth, origin, false, Optional.empty(), 128, PoolAliasLookup.EMPTY, DimensionPadding.ZERO, LiquidSettings.IGNORE_WATERLOGGING)
+        return JigsawPlacement.addPieces(context, holder, Optional.of(jbe.getTarget()), maxDepth, origin, false, Optional.empty(), new JigsawStructure.MaxDistance(128), PoolAliasLookup.EMPTY, DimensionPadding.ZERO, LiquidSettings.IGNORE_WATERLOGGING)
                 .map(stub -> {
                     StructurePiecesBuilder builder = stub.getPiecesBuilder();
                     ArrayDeque<WorkUnit> units = new ArrayDeque<>(builder.build().pieces().stream()
@@ -94,28 +98,23 @@ public class ProgressiveJigsawPlacer {
             return true;  // no more work
         }
         ServerLevel level = workData.level();
-        if (level != null) {
-            StructureManager structureManager = level.structureManager();
-            ChunkGenerator chunkgenerator = level.getChunkSource().getGenerator();
-            RandomSource random = level.getRandom();
+        StructureManager structureManager = level.structureManager();
+        ChunkGenerator chunkgenerator = level.getChunkSource().getGenerator();
+        RandomSource random = level.getRandom();
 
-            workUnit.piece().place(level, structureManager, chunkgenerator, random, BoundingBox.infinite(), workUnit.pos(), false);
+        workUnit.piece().place(level, structureManager, chunkgenerator, random, BoundingBox.infinite(), workUnit.pos(), false);
 
-            if (workData.work.isEmpty()) {
-                try {
-                    BlockState state = BlockStateParser.parseForBlock(level.holderLookup(Registries.BLOCK), jigsawParams.finalState(), false).blockState();
-                    level.setBlock(startPos, state, Block.UPDATE_ALL);
-                } catch (CommandSyntaxException e) {
-                    FTBTeamBases.LOGGER.error("invalid final_state {}, defaulting to AIR", jigsawParams.finalState());
-                    level.setBlock(startPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                }
+        if (workData.work.isEmpty()) {
+            try {
+                BlockState state = BlockStateParser.parseForBlock(level.holderLookup(Registries.BLOCK), jigsawParams.finalState(), false).blockState();
+                level.setBlock(startPos, state, Block.UPDATE_ALL);
+            } catch (CommandSyntaxException e) {
+                FTBTeamBases.LOGGER.error("invalid final_state {}, defaulting to AIR", jigsawParams.finalState());
+                level.setBlock(startPos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
             }
-
-            return !workData.work().isEmpty();
-        } else {
-            // shouldn't get here, but just in case...
-            return true;
         }
+
+        return !workData.work().isEmpty();
     }
 
     public CommandSourceStack getSource() {

@@ -1,15 +1,15 @@
 package dev.ftb.mods.ftbteambases.config;
 
-import dev.ftb.mods.ftblibrary.snbt.config.IntArrayValue;
-import dev.ftb.mods.ftblibrary.snbt.config.SNBTConfig;
-import dev.ftb.mods.ftblibrary.snbt.config.StringListValue;
-import dev.ftb.mods.ftblibrary.snbt.config.StringValue;
+import dev.ftb.mods.ftblibrary.config.value.Config;
+import dev.ftb.mods.ftblibrary.config.value.IntArrayValue;
+import dev.ftb.mods.ftblibrary.config.value.StringListValue;
+import dev.ftb.mods.ftblibrary.config.value.StringValue;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
-import net.minecraft.ResourceLocationException;
+import net.minecraft.IdentifierException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
 import java.nio.file.Path;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * These configs cannot be edited in-game and are not synced to clients.
  */
 public interface StartupConfig {
-    SNBTConfig CONFIG = SNBTConfig.create(FTBTeamBases.MOD_ID + "-startup");
+    Config CONFIG = Config.create(FTBTeamBases.MOD_ID + "-startup");
 
     StringValue LOBBY_DIMENSION = CONFIG.addString("lobby_dimension", "minecraft:overworld")
             .comment("Dimension ID of the level in which the lobby is created.",
@@ -32,7 +32,7 @@ public interface StartupConfig {
                     "New players will be automatically teleported to this dimension the first time they connect.",
                     "WARNING: Do NOT modify this on existing worlds!");
 
-    ResourceLocationListValue ADDITIONAL_PREGEN_DIMENSIONS = CONFIG.add(new ResourceLocationListValue(
+    IdentifierListValue ADDITIONAL_PREGEN_DIMENSIONS = CONFIG.add(new IdentifierListValue(
             CONFIG,
             "additional_pregen_dimensions",
             List.of(),
@@ -51,14 +51,14 @@ public interface StartupConfig {
 
     static Optional<ResourceKey<Level>> lobbyDimension() {
         try {
-            return Optional.of(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(LOBBY_DIMENSION.get())));
-        } catch (ResourceLocationException ignored) {
+            return Optional.of(ResourceKey.create(Registries.DIMENSION, Identifier.parse(LOBBY_DIMENSION.get())));
+        } catch (IdentifierException ignored) {
             FTBTeamBases.LOGGER.error("invalid dimension ID in config 'lobby_dimension': {}", LOBBY_DIMENSION.get());
             return Optional.empty();
         }
     }
 
-    static List<ResourceLocation> additionalPregenDimensions() {
+    static List<Identifier> additionalPregenDimensions() {
         return ADDITIONAL_PREGEN_DIMENSIONS.get();
     }
 

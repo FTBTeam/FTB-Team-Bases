@@ -7,34 +7,34 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.ServerLevelData;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.util.ClockAdjustment;
+import org.jspecify.annotations.Nullable;
 
 public class MiscUtil {
     public static String blockPosStr(BlockPos pos) {
         return String.format("[%d,%d,%d]", pos.getX(), pos.getY(), pos.getZ());
     }
 
-    public static void setOverworldTime(MinecraftServer server, long newTime) {
+    public static void setOverworldTime(MinecraftServer server, ClockAdjustment adjustment) {
         ServerLevel overworld = server.getLevel(Level.OVERWORLD);
         if (overworld != null) {
-            overworld.setDayTime(newTime);
-            if (overworld.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE) && overworld.isRaining()) {
-                if (overworld.getLevelData() instanceof ServerLevelData data) {
-                    data.setRainTime(0);
-                    data.setRaining(false);
-                    data.setThunderTime(0);
-                    data.setThundering(false);
-                }
+            overworld.dimensionType().defaultClock().ifPresent(worldClockHolder ->
+                    adjustment.apply(overworld.getServer().clockManager(), worldClockHolder));
+
+            if (overworld.getGameRules().get(GameRules.ADVANCE_WEATHER) && overworld.isRaining()) {
+                overworld.resetWeatherCycle();
             }
         }
     }
 
     public static double getTickTime(MinecraftServer server, ResourceKey<Level> key) {
         long[] times = server.getTickTime(key);
-        if (times == null) times = new long[] { 0L };
+        if (times == null) {
+            times = new long[] { 0L };
+        }
         return Stats.meanOf(times) * 1.0E-6;
     }
 
@@ -45,5 +45,14 @@ public class MiscUtil {
         if (ModList.get().isLoaded("curios")) {
             CuriosIntegration.clearCurios(serverPlayer);
         }
+    }
+
+    @Nullable
+    public static BlockPos getRespawnPosition(ServerPlayer player) {
+        return player.getRespawnConfig() == null ? null : player.getRespawnConfig().respawnData().pos();
+    }
+
+    public static ResourceKey<Level> getRespawnDimension(ServerPlayer player) {
+        return player.getRespawnConfig() == null ? Level.OVERWORLD : player.getRespawnConfig().respawnData().dimension();
     }
 }

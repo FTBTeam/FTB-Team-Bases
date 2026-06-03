@@ -6,16 +6,18 @@ import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
-import dev.ftb.mods.ftbteams.data.TeamArgument;
+import dev.ftb.mods.ftbteams.command.TeamArgument;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.Permission;
 
 import static net.minecraft.commands.Commands.literal;
 
 public class HomeCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("home")
-                .requires(source -> source.hasPermission(ServerConfig.HOME_CMD_PERMISSION_LEVEL.get()))
+                .requires(source -> source.permissions()
+                        .hasPermission(new Permission.HasCommandLevel(ServerConfig.HOME_CMD_PERMISSION_LEVEL.get())))
                 .executes(ctx -> doGoHome(ctx.getSource()));
     }
 

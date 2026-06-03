@@ -3,7 +3,7 @@ package dev.ftb.mods.ftbteambases.block;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.construction.BaseConstructionManager;
-import dev.ftb.mods.ftbteambases.events.neoforge.TeamBasesPortalEvent;
+import dev.ftb.mods.ftbteambases.events.TeamBasesPortalEvent;
 import dev.ftb.mods.ftbteambases.net.ShowSelectionGuiMessage;
 import dev.ftb.mods.ftbteambases.registry.ModBlocks;
 import dev.ftb.mods.ftbteambases.registry.ModSounds;
@@ -16,12 +16,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.InsideBlockEffectApplier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.ScheduledTickAccess;
 import net.minecraft.world.level.block.NetherPortalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.NeoForge;
@@ -39,8 +40,8 @@ public class BasesPortalBlock extends NetherPortalBlock {
     }
 
     @Override
-    public void entityInside(BlockState blockState, Level level, BlockPos blockPos, Entity entity) {
-        if (level.isClientSide || !(entity instanceof ServerPlayer player) || !player.canUsePortal(false)) {
+    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
+        if (level.isClientSide() || !(entity instanceof ServerPlayer player) || !player.canUsePortal(false)) {
             return;
         }
 
@@ -53,7 +54,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
             if (!event.isCanceled()) {
                 FTBTeamsAPI.api().getManager().getTeamForPlayer(player).ifPresent(team -> {
                     if (team.isPartyTeam()) {
-                        BaseInstanceManager.get(player.getServer()).teleportToBaseSpawn(player, team.getId());
+                        BaseInstanceManager.get(player.level().getServer()).teleportToBaseSpawn(player, team.getId());
                     } else if (!BaseConstructionManager.INSTANCE.isConstructing(player)) {
                         // player not in a party: bring up the base selection GUI
                         player.setPortalCooldown();
@@ -61,7 +62,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
                     }
                 });
             } else {
-                player.displayClientMessage(event.getCancellationReason(), true);
+                player.sendOverlayMessage(event.getCancellationReason());
                 player.setPortalCooldown();
             }
         }
@@ -77,13 +78,13 @@ public class BasesPortalBlock extends NetherPortalBlock {
     }
 
     @Override
-    public ItemStack getCloneItemStack(LevelReader levelReader, BlockPos blockPos, BlockState blockState) {
+    protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
         return new ItemStack(ModBlocks.PORTAL_ITEM.get());
     }
 
     @Override
-    public BlockState updateShape(BlockState blockState, Direction direction, BlockState blockState2, LevelAccessor levelAccessor, BlockPos blockPos, BlockPos blockPos2) {
-        return blockState;
+    protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos, Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState, RandomSource random) {
+        return state;
     }
 
     @Override
@@ -119,7 +120,7 @@ public class BasesPortalBlock extends NetherPortalBlock {
             BlockPos pos = player.blockPosition().above();
             BlockState blockState = player.level().getBlockState(pos);
             if (blockState.getBlock() == ModBlocks.PORTAL.get()) {
-                blockState.entityInside(player.level(), pos, player);
+                blockState.entityInside(player.level(), pos, player, InsideBlockEffectApplier.NOOP, false);
             }
         }
     }

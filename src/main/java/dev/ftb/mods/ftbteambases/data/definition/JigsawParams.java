@@ -9,17 +9,17 @@ import net.minecraft.core.FrontAndTop;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.JigsawBlockEntity;
 
 import java.util.Optional;
 
-public record JigsawParams(ResourceLocation templatePool, ResourceLocation target, Optional<Integer> yPos, int maxGenerationDepth,
+public record JigsawParams(Identifier templatePool, Identifier target, Optional<Integer> yPos, int maxGenerationDepth,
                            Optional<BlockPos> generationOffset, FrontAndTop jigsawOrientation,
                            JigsawBlockEntity.JointType jointType, String finalState) implements INetworkWritable<JigsawParams> {
     public static final Codec<JigsawParams> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            ResourceLocation.CODEC.fieldOf("template_pool").forGetter(JigsawParams::templatePool),
-            ResourceLocation.CODEC.fieldOf("target").forGetter(JigsawParams::target),
+            Identifier.CODEC.fieldOf("template_pool").forGetter(JigsawParams::templatePool),
+            Identifier.CODEC.fieldOf("target").forGetter(JigsawParams::target),
             Codec.INT.optionalFieldOf("y_pos").forGetter(JigsawParams::yPos),
             Codec.intRange(1, 20).fieldOf("max_gen_depth").forGetter(JigsawParams::maxGenerationDepth),
             BlockPos.CODEC.optionalFieldOf("generation_offset").forGetter(JigsawParams::generationOffset),
@@ -29,8 +29,8 @@ public record JigsawParams(ResourceLocation templatePool, ResourceLocation targe
     ).apply(inst, JigsawParams::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, JigsawParams> STREAM_CODEC = NetworkHelper.composite(
-            ResourceLocation.STREAM_CODEC, JigsawParams::templatePool,
-            ResourceLocation.STREAM_CODEC, JigsawParams::target,
+            Identifier.STREAM_CODEC, JigsawParams::templatePool,
+            Identifier.STREAM_CODEC, JigsawParams::target,
             ByteBufCodecs.optional(ByteBufCodecs.INT), JigsawParams::yPos,
             ByteBufCodecs.INT, JigsawParams::maxGenerationDepth,
             ByteBufCodecs.optional(BlockPos.STREAM_CODEC), JigsawParams::generationOffset,

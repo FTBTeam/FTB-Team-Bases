@@ -1,14 +1,15 @@
 package dev.ftb.mods.ftbteambases.data.construction.workers;
 
 import dev.ftb.mods.ftblibrary.math.XZ;
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
+import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
 import dev.ftb.mods.ftbteambases.util.RegionCoords;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -25,7 +26,7 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
     protected final BaseDefinition baseDefinition;
     protected final boolean privateDimension;
     private final ResourceKey<Level> dimensionKey;
-    protected BooleanConsumer onCompleted;
+    protected BooleanConsumer onCompleted = _ -> {};
     private final RegionExtents extents;
 
     protected AbstractStructureWorker(ServerPlayer player, BaseDefinition baseDefinition, boolean privateDimension) {
@@ -33,11 +34,11 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
         this.privateDimension = privateDimension;
 
         dimensionKey = privateDimension ?
-                ConstructionWorker.makePrivateDimensionKeyFor(player.getGameProfile().getName().toLowerCase()) :
+                ConstructionWorker.makePrivateDimensionKeyFor(player.nameAndId().name().toLowerCase()) :
                 ResourceKey.create(Registries.DIMENSION, baseDefinition.dimensionSettings().dimensionId().orElse(FTBTeamBases.SHARED_DIMENSION_ID));
 
-        MinecraftServer server = Objects.requireNonNull(player.getServer());
-        RegionCoords startRegion = BaseInstanceManager.get(server).nextGenerationPos(server, baseDefinition, getDimension().location(), baseDefinition.extents());
+        MinecraftServer server = Objects.requireNonNull(player.level().getServer());
+        RegionCoords startRegion = BaseInstanceManager.get(server).nextGenerationPos(server, baseDefinition, getDimension().identifier(), baseDefinition.extents());
         extents = new RegionExtents(
             startRegion,
             startRegion.offsetBy(baseDefinition.extents().x() - 1, baseDefinition.extents().z() - 1)
@@ -45,9 +46,13 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
     }
 
     protected final ServerLevel getOrCreateLevel(MinecraftServer server) {
-        return privateDimension ?
+        var level =  privateDimension ?
                 DynamicDimensionManager.create(server, dimensionKey, baseDefinition) :
                 server.getLevel(dimensionKey);
+        if (level == null) {
+            throw new FTBTeamBasesException("can't get/create dimension " + dimensionKey + " for base id " + baseDefinition.id());
+        }
+        return level;
     }
 
     @Override
@@ -74,6 +79,7 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
      *            if absent, use the surface height of the level at this X/Z position
      * @return the placement origin
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     protected final BlockPos getPlacementOrigin(ServerLevel level, XZ xz, Optional<Integer> yPos) {
         int x = xz.x();
         int z = xz.z();

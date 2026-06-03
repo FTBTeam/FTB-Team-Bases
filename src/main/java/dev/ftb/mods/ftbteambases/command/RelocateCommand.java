@@ -11,8 +11,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.levelgen.Heightmap;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Set;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -20,7 +22,7 @@ import static net.minecraft.commands.Commands.literal;
 public class RelocateCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("relocate")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(argument("template", StringArgumentType.word())
                         .then(argument("region_x", IntegerArgumentType.integer())
                                 .then(argument("region_z", IntegerArgumentType.integer())
@@ -50,10 +52,10 @@ public class RelocateCommand {
         }
     }
 
-    private static void onRelocationTick(ServerPlayer player, RegionFileRelocator relocator) {
+    private static void onRelocationTick(@Nullable ServerPlayer player, RegionFileRelocator relocator) {
         if (player != null) {
             int pct = (int)(100 * relocator.getProgress());
-            player.displayClientMessage(Component.literal("progress " + pct + "%"), true);
+            player.sendOverlayMessage(Component.literal("progress " + pct + "%"));
         }
     }
 
@@ -65,7 +67,7 @@ public class RelocateCommand {
                 int zPos = z * 512 + 8;
                 source.getLevel().getChunkAt(new BlockPos(xPos, 0, zPos));
                 int y = source.getLevel().getHeight(Heightmap.Types.WORLD_SURFACE, xPos, zPos);
-                source.getPlayer().teleportTo(source.getLevel(), xPos, y, zPos, 0, 0);
+                source.getPlayer().teleportTo(source.getLevel(), xPos, y, zPos, Set.of(), 0, 0, true);
             }
         } else {
             source.sendFailure(Component.literal("relocation failed, check server log").withStyle(ChatFormatting.RED));

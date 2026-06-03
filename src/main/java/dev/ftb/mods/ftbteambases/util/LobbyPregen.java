@@ -3,7 +3,7 @@ package dev.ftb.mods.ftbteambases.util;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.config.StartupConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
 import org.apache.commons.io.FileUtils;
@@ -11,9 +11,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class LobbyPregen {
@@ -44,7 +42,7 @@ public class LobbyPregen {
         }
 
         // Copy additional pregen dimensions from startup config
-        for (ResourceLocation rl : StartupConfig.additionalPregenDimensions()) {
+        for (Identifier rl : StartupConfig.additionalPregenDimensions()) {
             Path dimPath = Path.of("dimensions", rl.getNamespace(), rl.getPath());
             Path srcDir = initialPath.resolve(dimPath);
             Path destDir = worldPath.resolve(dimPath);
@@ -94,7 +92,7 @@ public class LobbyPregen {
     private static void addLobbyExtras(List<Path> paths) {
         // if the lobby dimension isn't a vanilla one (overworld/nether/end), consider files in that dimension for pregen too
         StartupConfig.lobbyDimension().ifPresent(key -> {
-            ResourceLocation rl = key.location();
+            Identifier rl = key.identifier();
             if (!rl.getNamespace().equals("minecraft")) {
                 paths.add(Path.of("dimensions", rl.getNamespace(), rl.getPath()));
             }

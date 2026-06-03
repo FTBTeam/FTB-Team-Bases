@@ -15,9 +15,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.border.WorldBorder;
-import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -31,7 +31,8 @@ public class NetherPortalPlacement {
      * @param srcPos blockpos at which the portal is entered, or null if due to using the nether-visit command
      * @return portal destination if this should be a team transition, null otherwise
      */
-    public static DimensionTransition getTeamEntryPoint(ServerLevel serverLevel, Entity entity, BlockPos srcPos) {
+    @Nullable
+    public static TeleportTransition getTeamEntryPoint(ServerLevel serverLevel, Entity entity, @Nullable BlockPos srcPos) {
         if (!(entity instanceof ServerPlayer serverPlayer)) {
             return null;
         }
@@ -40,7 +41,7 @@ public class NetherPortalPlacement {
             return null;
         }
 
-        var mgr = BaseInstanceManager.get(serverPlayer.server);
+        var mgr = BaseInstanceManager.get(serverPlayer.level().getServer());
 
         if (DimensionUtils.isTeamDimension(serverLevel) || srcPos == null) {
             // going to the Nether from a team base or the nether-visit command; go to team-specific entry point
@@ -63,7 +64,7 @@ public class NetherPortalPlacement {
                 ServerLevel newLevel = serverLevel.getServer().getLevel(teamDim);
                 if (newLevel != null) {
                     BlockPos portalPos = mgr.getPlayerNetherPortalLoc(serverPlayer).orElse(base.spawnPos());
-                    return new DimensionTransition(newLevel, Vec3.atBottomCenterOf(portalPos), serverPlayer.getDeltaMovement(), serverPlayer.getYRot(), serverPlayer.getXRot(), DimensionTransition.PLAY_PORTAL_SOUND);
+                    return new TeleportTransition(newLevel, Vec3.atBottomCenterOf(portalPos), serverPlayer.getDeltaMovement(), serverPlayer.getYRot(), serverPlayer.getXRot(), TeleportTransition.PLAY_PORTAL_SOUND);
                 }
                 return null;
             }).orElse(null);

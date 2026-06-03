@@ -1,6 +1,6 @@
 package dev.ftb.mods.ftbteambases.config;
 
-import dev.ftb.mods.ftblibrary.config.NameMap;
+import dev.ftb.mods.ftblibrary.util.NameMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 
@@ -31,8 +31,8 @@ public enum AutoClaimShape {
             case 1 -> consumer.accept(origin);
             default -> {
                 int r = radius - 1;
-                for (int cx = origin.x - r; cx <= origin.x + r; cx++) {
-                    for (int cz = origin.z - r; cz <= origin.z + r; cz++) {
+                for (int cx = origin.x() - r; cx <= origin.x() + r; cx++) {
+                    for (int cz = origin.z() - r; cz <= origin.z() + r; cz++) {
                         ChunkPos cp = new ChunkPos(cx, cz);
                         if (this == SQUARE || cp.getMiddleBlockPosition(0).distSqr(pos0) < blockRadiusSq) {
                             consumer.accept(cp);
@@ -41,6 +41,5 @@ public enum AutoClaimShape {
                 }
             }
         }
-        ;
     }
 }

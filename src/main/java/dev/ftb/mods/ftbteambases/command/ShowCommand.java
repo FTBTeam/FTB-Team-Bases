@@ -8,7 +8,7 @@ import dev.ftb.mods.ftbteambases.data.bases.LiveBaseDetails;
 import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
-import dev.ftb.mods.ftbteams.data.TeamArgument;
+import dev.ftb.mods.ftbteams.command.TeamArgument;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -20,9 +20,9 @@ import static net.minecraft.commands.Commands.literal;
 public class ShowCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("show")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(argument("name", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> CommandUtils.suggestLiveBases(builder))
+                        .suggests((ctx, builder) -> CommandUtils.suggestLiveBases(ctx.getSource().getServer(), builder))
                         .executes(ctx -> doShow(ctx.getSource(), StringArgumentType.getString(ctx, "name")))
                 );
     }
@@ -39,7 +39,7 @@ public class ShowCommand {
         source.sendSuccess(() -> Component.translatable("ftbteams.info.id",
                 colorize(team.getTeamId(), ChatFormatting.YELLOW)), false);
         source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_dimension",
-                colorize(base.dimension().location(), ChatFormatting.YELLOW)), false);
+                colorize(base.dimension().identifier(), ChatFormatting.YELLOW)), false);
         source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_extents_block",
                 colorize(base.extents().asBlockPosString(), ChatFormatting.YELLOW)), false);
         source.sendSuccess(() -> Component.translatable("ftbteambases.message.base_extents",

@@ -1,6 +1,5 @@
 package dev.ftb.mods.ftbteambases.command;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -12,12 +11,13 @@ import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.TeamManager;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.server.players.PlayerList;
+import net.minecraft.util.Util;
 
 import java.text.DateFormat;
 import java.time.Instant;
@@ -29,11 +29,11 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 public class ArchiveCommand {
-    private static final GameProfile UNKNOWN = new GameProfile(Util.NIL_UUID, "???");
+    private static final NameAndId UNKNOWN = new NameAndId(Util.NIL_UUID, "???");
 
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("archive")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(literal("list")
                         .executes(ctx -> doListArchive(ctx.getSource(), base -> true))
                 )
@@ -45,8 +45,8 @@ public class ArchiveCommand {
                                             return SharedSuggestionProvider.suggest(
                                                     playerlist.getPlayers()
                                                             .stream()
-                                                            .filter(p -> !playerlist.isOp(p.getGameProfile()))
-                                                            .map(p -> p.getGameProfile().getName()),
+                                                            .filter(p -> !playerlist.isOp(p.nameAndId()))
+                                                            .map(p -> p.nameAndId().name()),
                                                     builder
                                             );
                                         }
@@ -56,7 +56,7 @@ public class ArchiveCommand {
                 )
                 .then(literal("restore")
                         .then(argument("id", StringArgumentType.string())
-                                .suggests((ctx, builder) -> CommandUtils.suggestArchivedBases(builder))
+                                .suggests((ctx, builder) -> CommandUtils.suggestArchivedBases(ctx.getSource().getServer(), builder))
                                 .executes(ctx -> doRestoreArchive(ctx.getSource(), StringArgumentType.getString(ctx, "id")))
                         )
                 )
@@ -68,7 +68,7 @@ public class ArchiveCommand {
                         )
                         .then(literal("-id")
                                 .then(argument("id", StringArgumentType.string())
-                                        .suggests((ctx, builder) -> CommandUtils.suggestArchivedBases(builder))
+                                        .suggests((ctx, builder) -> CommandUtils.suggestArchivedBases(ctx.getSource().getServer(), builder))
                                         .executes(ctx -> doPurgeArchive(ctx.getSource(), StringArgumentType.getString(ctx, "id")))
                                 )
                         )
@@ -110,7 +110,7 @@ public class ArchiveCommand {
                     .withStyle(ChatFormatting.GREEN, ChatFormatting.UNDERLINE), false);
             source.sendSuccess(Component::empty, false);
             bases.forEach(base -> {
-                String playerName = source.getServer().getProfileCache().get(base.ownerId()).orElse(UNKNOWN).getName();
+                String playerName = source.getServer().services().nameToIdCache().get(base.ownerId()).orElse(UNKNOWN).name();
                 String when = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date.from(Instant.ofEpochMilli(base.archiveTime())));
 
                 boolean isOwnerInParty = FTBTeamsAPI.api().getManager().getTeamForPlayerID(base.ownerId()).map(Team::isPlayerTeam).orElse(false);
@@ -134,8 +134,8 @@ public class ArchiveCommand {
         return 1;
     }
 
-    private static int doListArchive(CommandSourceStack source, Collection<GameProfile> profiles) {
-        Set<UUID> ids = profiles.stream().map(GameProfile::getId).collect(Collectors.toSet());
+    private static int doListArchive(CommandSourceStack source, Collection<NameAndId> profiles) {
+        Set<UUID> ids = profiles.stream().map(NameAndId::id).collect(Collectors.toSet());
         return doListArchive(source, base -> ids.contains(base.ownerId()));
     }
 

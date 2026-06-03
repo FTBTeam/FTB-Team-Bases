@@ -1,6 +1,5 @@
 package dev.ftb.mods.ftbteambases.data.construction.workers;
 
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.construction.ConstructionWorker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
@@ -8,6 +7,7 @@ import dev.ftb.mods.ftbteambases.data.definition.Pregen;
 import dev.ftb.mods.ftbteambases.util.DynamicDimensionManager;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
 import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,16 +25,16 @@ public class PrivateDimensionPregenWorker implements ConstructionWorker {
     private final BaseDefinition baseDefinition;
     private final RegionExtents extents;
     private final Path pregenDir;
-    private BooleanConsumer onCompleted;
+    private BooleanConsumer onCompleted = _ -> {};
     private int delayTick = 2;
 
     public PrivateDimensionPregenWorker(ServerPlayer player, BaseDefinition baseDefinition, Pregen pregen) {
         this.player = player;
         this.baseDefinition = baseDefinition;
 
-        dimensionKey = ConstructionWorker.makePrivateDimensionKeyFor(player.getGameProfile().getName().toLowerCase());
+        dimensionKey = ConstructionWorker.makePrivateDimensionKeyFor(player.nameAndId().name().toLowerCase());
 
-        pregenDir = RegionFileUtil.getPregenPath(pregen.templateId(), Objects.requireNonNull(player.getServer()), null);
+        pregenDir = RegionFileUtil.getPregenPath(pregen.templateId(), Objects.requireNonNull(player.level().getServer()), null);
         extents = RegionFileUtil.getRegionExtents(pregenDir.resolve("region"))
                 .orElseThrow(() -> new FTBTeamBasesException("no region files in " + pregenDir));
     }
@@ -43,10 +43,10 @@ public class PrivateDimensionPregenWorker implements ConstructionWorker {
     public void startConstruction(BooleanConsumer onCompleted) {
         this.onCompleted = onCompleted;
 
-        MinecraftServer server = Objects.requireNonNull(player.getServer());
+        MinecraftServer server = Objects.requireNonNull(player.level().getServer());
 
         // Check for pregen'd MCA files and copy them into where the dimension will be generated
-        RegionFileUtil.copyIfExists(player.server, pregenDir, dimensionKey);
+        RegionFileUtil.copyIfExists(server, pregenDir, dimensionKey);
 
         // Create the dimension
         DynamicDimensionManager.create(server, dimensionKey, baseDefinition);

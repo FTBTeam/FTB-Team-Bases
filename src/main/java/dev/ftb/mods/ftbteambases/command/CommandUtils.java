@@ -8,7 +8,6 @@ import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.data.bases.ArchivedBaseDetails;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
-import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import net.minecraft.ChatFormatting;
@@ -16,11 +15,14 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.*;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.permissions.Permissions;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 public class CommandUtils {
     public static final DynamicCommandExceptionType BASE_NOT_FOUND
@@ -62,28 +64,28 @@ public class CommandUtils {
 
     static CompletableFuture<Suggestions> suggestDefinitions(SuggestionsBuilder builder) {
         List<String> ids = BaseDefinitionManager.getServerInstance().getTemplateIds().stream()
-                .map(ResourceLocation::toString)
+                .map(Identifier::toString)
                 .toList();
         return SharedSuggestionProvider.suggest(ids, builder);
     }
 
-    static CompletableFuture<Suggestions> suggestLiveBases(SuggestionsBuilder builder) {
+    static CompletableFuture<Suggestions> suggestLiveBases(MinecraftServer server, SuggestionsBuilder builder) {
         List<String> ids = FTBTeamsAPI.api().getManager().getTeams().stream()
-                .filter(team -> team.isPartyTeam() && BaseInstanceManager.get().getBaseForTeam(team).isPresent())
+                .filter(team -> team.isPartyTeam() && BaseInstanceManager.get(server).getBaseForTeam(team).isPresent())
                 .map(Team::getShortName)
                 .toList();
         return SharedSuggestionProvider.suggest(ids, builder);
     }
 
-    static CompletableFuture<Suggestions> suggestArchivedBases(SuggestionsBuilder builder) {
-        List<String> ids = BaseInstanceManager.get().getArchivedBases().stream()
+    static CompletableFuture<Suggestions> suggestArchivedBases(MinecraftServer server, SuggestionsBuilder builder) {
+        List<String> ids = BaseInstanceManager.get(server).getArchivedBases().stream()
                 .map(ArchivedBaseDetails::archiveId)
                 .toList();
         return SharedSuggestionProvider.suggest(ids, builder);
     }
 
     static CompletableFuture<Suggestions> suggestPendingPurges(SuggestionsBuilder builder) {
-        return SharedSuggestionProvider.suggest(PurgeManager.INSTANCE.getPendingIds(), builder);
+        return SharedSuggestionProvider.suggest(FTBTeamBases.getInstance().getPurgeManager().getPendingIds(), builder);
     }
 
     public static Component makeCommandClicky(String translationKey, ChatFormatting color, String command) {
@@ -91,16 +93,16 @@ public class CommandUtils {
     }
 
     public static Component makeCommandClicky(String translationKey, ChatFormatting color, String command, boolean suggestOnly) {
-        ClickEvent.Action action = suggestOnly ? ClickEvent.Action.SUGGEST_COMMAND : ClickEvent.Action.RUN_COMMAND;
+        var action = suggestOnly ? new ClickEvent.SuggestCommand(command) : new ClickEvent.RunCommand(command);
         return Component.literal("[")
                 .append(Component.translatable(translationKey)
                         .withStyle(Style.EMPTY.withColor(color)
-                        .withClickEvent(new ClickEvent(action, command))))
+                        .withClickEvent(action)))
                 .append("]");
     }
 
     public static Component makeTooltipComponent(Component text, ChatFormatting color, String tooltip) {
-        return text.copy().withStyle(Style.EMPTY.withColor(color).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(tooltip))));
+        return text.copy().withStyle(Style.EMPTY.withColor(color).withHoverEvent(new HoverEvent.ShowText(Component.literal(tooltip))));
     }
 
     public static void message(CommandSourceStack source, ChatFormatting color, String translationKey, Object... params) {
@@ -113,5 +115,9 @@ public class CommandUtils {
 
     public static MutableComponent colorize(Object o, ChatFormatting... colors) {
         return Component.literal(o.toString()).withStyle(colors);
+    }
+
+    public static Predicate<CommandSourceStack> requiresGameMaster() {
+        return ctx -> ctx.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
     }
 }

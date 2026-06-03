@@ -10,7 +10,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public enum ShowSelectionGuiMessage implements CustomPacketPayload {
     INSTANCE;
 
-    public static final Type<ShowSelectionGuiMessage> TYPE = new Type<>(FTBTeamBases.rl("show_selection_gui"));
+    public static final Type<ShowSelectionGuiMessage> TYPE = new Type<>(FTBTeamBases.id("show_selection_gui"));
     public static final StreamCodec<FriendlyByteBuf, ShowSelectionGuiMessage> STREAM_CODEC = StreamCodec.unit(ShowSelectionGuiMessage.INSTANCE);
 
     public static void handle(ShowSelectionGuiMessage ignored, IPayloadContext ignoredContext) {

@@ -6,13 +6,14 @@ import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.data.bases.ArchivedBaseDetails;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
-import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.storage.LevelResource;
+import net.neoforged.neoforge.common.util.Lazy;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,43 +22,34 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public enum PurgeManager {
-    INSTANCE;
-
-    private PendingPurgeData data;
-    private MinecraftServer server;
+public class PurgeManager {
+    private final Lazy<PendingPurgeData> data = Lazy.of(this::loadData);
+    private final MinecraftServer server;
     private final List<String> purgedArchiveIds = new ArrayList<>();
 
-    private PendingPurgeData getData(MinecraftServer server) {
-        if (data == null) {
-            data = PendingPurgeData.readFromFile(server);
-            this.server = server;
-        }
-        return data;
-    }
-
-    public void init(MinecraftServer server) {
+    public PurgeManager(MinecraftServer server) {
         this.server = server;
-
-        checkForPurges(server);
     }
 
-    public void onShutdown() {
-        data = null;
-        server = null;
+    private PendingPurgeData loadData() {
+        return PendingPurgeData.readFromFile(server);
+    }
+
+    private PendingPurgeData getData() {
+        return data.get();
     }
 
     public boolean clearPending() {
-        return getData(server).clearPending().writeToFile(server);
+        return getData().clearPending().writeToFile(server);
     }
 
-    public void checkForPurges(MinecraftServer server) {
+    public void checkForPurges() {
         purgedArchiveIds.clear();
 
-        List<ResourceLocation> purgedDims = new ArrayList<>();
+        List<Identifier> purgedDims = new ArrayList<>();
 
-        getData(this.server).pending().forEach((id, purgeRecord) -> {
-            purgeRecord.doPurge(this.server, false);
+        getData().pending().forEach((id, purgeRecord) -> {
+            purgeRecord.doPurge(server, false);
             purgedArchiveIds.add(id);
             if (DimensionUtils.isPrivateTeamDimension(purgeRecord.dimensionId())) {
                 purgedDims.add(purgeRecord.dimensionId());
@@ -72,22 +64,22 @@ public enum PurgeManager {
     }
 
     public boolean addPending(Collection<ArchivedBaseDetails> details) {
-        return getData(server).add(details).writeToFile(server);
+        return getData().add(details).writeToFile(server);
     }
 
     public boolean removePending(Collection<ArchivedBaseDetails> details) {
-        return getData(server).remove(details).writeToFile(server);
+        return getData().remove(details).writeToFile(server);
     }
 
     public boolean removePending(String id) throws CommandSyntaxException {
-        if (!getData(server).pending().containsKey(id)) {
+        if (!getData().pending().containsKey(id)) {
             throw CommandUtils.PURGE_NOT_FOUND.create(id);
         }
-        return getData(server).remove(id).writeToFile(server);
+        return getData().remove(id).writeToFile(server);
     }
 
     public Collection<String> getPendingIds() {
-        return getData(server).pending().keySet();
+        return getData().pending().keySet();
     }
 
     public void cleanUpPurgedArchives(BaseInstanceManager res) {
@@ -97,7 +89,7 @@ public enum PurgeManager {
         }
     }
 
-    private static void removeLevelsFromLevelDat(MinecraftServer server, List<ResourceLocation> ids) {
+    private static void removeLevelsFromLevelDat(MinecraftServer server, List<Identifier> ids) {
         // Dimension data is stored in level.dat as well as directories on disk,
         //   so it's not enough just to delete the dimension directory;
         //   the dimension must also be removed from level.dat
@@ -107,16 +99,23 @@ public enum PurgeManager {
         try {
             CompoundTag tag = NbtIo.readCompressed(levelDatFile, NbtAccounter.unlimitedHeap());
 
-            CompoundTag tag1 = tag.getCompound("Data").getCompound("WorldGenSettings").getCompound("dimensions");
+            CompoundTag tag1 = tag.getCompound("Data")
+                    .flatMap(tag2 -> tag2.getCompound("WorldGenSettings")
+                            .flatMap(tag3 -> tag3.getCompound("dimensions"))
+                    ).orElse(null);
 
-            ids.forEach(id -> tag1.remove(id.toString()));
+            if (tag1 != null) {
+                ids.forEach(id -> tag1.remove(id.toString()));
 
-            File tempFile = File.createTempFile("tmp-level", ".dat", levelDatFile.toFile());
-            NbtIo.writeCompressed(tag, tempFile.toPath());
-            File backupFile = server.getServerDirectory().resolve("level.dat.old").toFile();
-            Util.safeReplaceFile(levelDatFile, tempFile.toPath(), backupFile.toPath());
+                File tempFile = File.createTempFile("tmp-level", ".dat", levelDatFile.toFile());
+                NbtIo.writeCompressed(tag, tempFile.toPath());
+                File backupFile = server.getServerDirectory().resolve("level.dat.old").toFile();
+                Util.safeReplaceFile(levelDatFile, tempFile.toPath(), backupFile.toPath());
 
-            FTBTeamBases.LOGGER.info("removed {} purged base dimension(s) from level.dat", ids.size());
+                FTBTeamBases.LOGGER.info("removed {} purged base dimension(s) from level.dat", ids.size());
+            } else {
+                FTBTeamBases.LOGGER.info("could not find Data->WorldGenSettings->dimensions tag in level.dat!");
+            }
         } catch (IOException e) {
             FTBTeamBases.LOGGER.error("can't update level.dat to remove purged ids: {} / {}", e.getClass().getSimpleName(), e.getMessage());
         }

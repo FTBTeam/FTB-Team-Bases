@@ -5,7 +5,7 @@ import dev.ftb.mods.ftbteambases.command.CommandUtils;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
-import dev.ftb.mods.ftbteams.data.TeamArgument;
+import dev.ftb.mods.ftbteams.command.TeamArgument;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -29,7 +29,7 @@ public enum BaseConstructionManager {
             throw TeamArgument.ALREADY_IN_PARTY.create();
         }
 
-        player.displayClientMessage(Component.translatable("ftbteambases.message.creation_started").withStyle(ChatFormatting.GREEN), false);
+        player.sendSystemMessage(Component.translatable("ftbteambases.message.creation_started").withStyle(ChatFormatting.GREEN));
 
         agents.put(player.getUUID(), new BaseConstructionAgent(player, baseDefinition));
     }

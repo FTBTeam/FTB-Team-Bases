@@ -12,8 +12,8 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -38,24 +38,24 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
     public static final MapCodec<CustomChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             BiomeSource.CODEC.fieldOf("biome_source").forGetter((gen) -> gen.biomeSource),
             NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(NoiseBasedChunkGenerator::generatorSettings),
-            ResourceLocation.CODEC.optionalFieldOf("prebuilt_structure_id", FTBTeamBases.NO_TEMPLATE_ID).forGetter(CustomChunkGenerator::getBaseDefinitionId)
+            Identifier.CODEC.optionalFieldOf("prebuilt_structure_id", FTBTeamBases.NO_TEMPLATE_ID).forGetter(CustomChunkGenerator::getBaseDefinitionId)
     ).apply(instance, instance.stable(CustomChunkGenerator::new)));
 
-    private final ResourceLocation baseTemplateId;
+    private final Identifier baseTemplateId;
 
-    public static CustomChunkGenerator create(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
-        Registry<Biome> biomeRegistry = registryAccess.registryOrThrow(Registries.BIOME);
+    public static CustomChunkGenerator create(MinecraftServer server, RegistryAccess registryAccess, Identifier prebuiltStructureId) {
+        Registry<Biome> biomeRegistry = registryAccess.lookupOrThrow(Registries.BIOME);
         BiomeSource biomeSource;
         if (!ServerConfig.SINGLE_BIOME_ID.get().isEmpty()) {
             ResourceKey<Biome> biomeKey = ResourceKey.create(Registries.BIOME,
-                    ResourceLocation.parse(ServerConfig.SINGLE_BIOME_ID.get()));
-            biomeSource = new FixedBiomeSource(biomeRegistry.getHolderOrThrow(biomeKey));
+                    Identifier.parse(ServerConfig.SINGLE_BIOME_ID.get()));
+            biomeSource = new FixedBiomeSource(biomeRegistry.getOrThrow(biomeKey));
         } else if (!ServerConfig.BIOME_SOURCE_FROM_DIMENSION.get().isEmpty()) {
             ResourceKey<Level> levelKey = ResourceKey.create(Registries.DIMENSION,
-                    ResourceLocation.parse(ServerConfig.BIOME_SOURCE_FROM_DIMENSION.get()));
+                    Identifier.parse(ServerConfig.BIOME_SOURCE_FROM_DIMENSION.get()));
             ServerLevel level = server.getLevel(levelKey);
             if (level == null) {
-                FTBTeamBases.LOGGER.error("unknown level {} in 'use_biome_source_from', falling back to overworld", levelKey.location());
+                FTBTeamBases.LOGGER.error("unknown level {} in 'use_biome_source_from', falling back to overworld", levelKey.identifier());
                 level = Objects.requireNonNull(server.getLevel(Level.OVERWORLD));
             }
             biomeSource = level.getChunkSource().getGenerator().getBiomeSource();
@@ -66,9 +66,9 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         }
 
         ResourceKey<NoiseGeneratorSettings> noiseSettingsKey = ResourceKey.create(Registries.NOISE_SETTINGS,
-                ResourceLocation.parse(ServerConfig.NOISE_SETTINGS.get()));
-        Holder<NoiseGeneratorSettings> noiseSettings = registryAccess.registryOrThrow(Registries.NOISE_SETTINGS)
-                .getHolderOrThrow(noiseSettingsKey);
+                Identifier.parse(ServerConfig.NOISE_SETTINGS.get()));
+        Holder<NoiseGeneratorSettings> noiseSettings = registryAccess.lookupOrThrow(Registries.NOISE_SETTINGS)
+                .getOrThrow(noiseSettingsKey);
 
         CustomChunkGenerator gen = new CustomChunkGenerator(biomeSource, noiseSettings, prebuiltStructureId);
 
@@ -80,14 +80,14 @@ public class CustomChunkGenerator extends NoiseBasedChunkGenerator implements Ba
         return gen;
     }
 
-    private CustomChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings, ResourceLocation baseTemplateId) {
+    private CustomChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings, Identifier baseTemplateId) {
         super(biomeSource, settings);
 
         this.baseTemplateId = baseTemplateId;
     }
 
     @Override
-    public ResourceLocation getBaseDefinitionId() {
+    public Identifier getBaseDefinitionId() {
         return baseTemplateId;
     }
 

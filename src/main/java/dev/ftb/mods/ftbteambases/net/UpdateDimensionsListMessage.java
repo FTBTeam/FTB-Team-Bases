@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 public record UpdateDimensionsListMessage(List<ResourceKey<Level>> dimensions, boolean add) implements CustomPacketPayload {
-	public static final Type<UpdateDimensionsListMessage> TYPE = new Type<>(FTBTeamBases.rl("update_dimensions_list"));
+	public static final Type<UpdateDimensionsListMessage> TYPE = new Type<>(FTBTeamBases.id("update_dimensions_list"));
 	public static final StreamCodec<FriendlyByteBuf, UpdateDimensionsListMessage> STREAM_CODEC = StreamCodec.composite(
 			ResourceKey.streamCodec(Registries.DIMENSION).apply(ByteBufCodecs.list()), UpdateDimensionsListMessage::dimensions,
 			ByteBufCodecs.BOOL, UpdateDimensionsListMessage::add,

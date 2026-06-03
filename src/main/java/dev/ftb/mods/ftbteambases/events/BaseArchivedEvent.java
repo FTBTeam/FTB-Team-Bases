@@ -1,12 +1,23 @@
 package dev.ftb.mods.ftbteambases.events;
 
-import dev.architectury.event.Event;
-import dev.architectury.event.EventFactory;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteams.api.Team;
+import net.neoforged.bus.api.Event;
 
-public interface BaseArchivedEvent {
-    Event<BaseArchivedEvent> ARCHIVED = EventFactory.createLoop();
+public class BaseArchivedEvent extends Event {
+    private final BaseInstanceManager manager;
+    private final Team partyTeam;
 
-    void deleted(BaseInstanceManager manager, Team partyTeam);
+    public BaseArchivedEvent(BaseInstanceManager manager, Team partyTeam) {
+        this.manager = manager;
+        this.partyTeam = partyTeam;
+    }
+
+    public BaseInstanceManager getManager() {
+        return manager;
+    }
+
+    public Team getPartyTeam() {
+        return partyTeam;
+    }
 }

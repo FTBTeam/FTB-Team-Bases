@@ -5,8 +5,8 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
@@ -16,14 +16,14 @@ import java.util.stream.Stream;
 
 @FunctionalInterface
 public interface StructureSetProvider {
-    List<ResourceLocation> structureSetIds();
+    List<Identifier> structureSetIds();
 
     static Stream<Holder<StructureSet>> getStructureSets(HolderLookup<StructureSet> holderLookup, StructureSetProvider provider) {
         List<Holder<StructureSet>> res = new ArrayList<>();
 
-        for (ResourceLocation id : provider.structureSetIds()) {
+        for (Identifier id : provider.structureSetIds()) {
             if (id.getPath().startsWith("#")) {
-                ResourceLocation tagId = ResourceLocation.tryParse(id.toString().substring(1));
+                Identifier tagId = Identifier.tryParse(id.toString().substring(1));
                 if (tagId == null) {
                     FTBTeamBases.LOGGER.warn("Invalid structure set tag format: {}", id);
                     continue;

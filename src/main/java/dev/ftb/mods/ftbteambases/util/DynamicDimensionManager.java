@@ -10,20 +10,18 @@ import dev.ftb.mods.ftbteambases.data.definition.PrebuiltStructure;
 import dev.ftb.mods.ftbteambases.net.UpdateDimensionsListMessage;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.RegistryLayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.progress.ChunkProgressListener;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.border.BorderChangeListener;
-import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.storage.DerivedLevelData;
+import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.storage.WorldData;
 import net.neoforged.neoforge.common.NeoForge;
@@ -55,21 +53,20 @@ public class DynamicDimensionManager {
 
 		RegistryAccess registryAccess = server.registryAccess();
 		ServerLevel overworld = Objects.requireNonNull(server.getLevel(Level.OVERWORLD));
-		ResourceKey<LevelStem> dimensionKey = ResourceKey.create(Registries.LEVEL_STEM, worldKey.location());
+		ResourceKey<LevelStem> dimensionKey = ResourceKey.create(Registries.LEVEL_STEM, worldKey.identifier());
 
-		ResourceLocation dimensionTypeId = baseDefinition.dimensionSettings().dimensionType().orElse(BaseDefinition.DEFAULT_DIMENSION_TYPE);
-		Holder<DimensionType> typeHolder = registryAccess.registryOrThrow(Registries.DIMENSION_TYPE).getHolderOrThrow(
+		Identifier dimensionTypeId = baseDefinition.dimensionSettings().dimensionType().orElse(BaseDefinition.DEFAULT_DIMENSION_TYPE);
+		Holder<DimensionType> typeHolder = registryAccess.lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(
 				ResourceKey.create(Registries.DIMENSION_TYPE, dimensionTypeId)
 		);
 
-		ResourceLocation prebuiltStructureId = baseDefinition.constructionType().prebuilt()
+		Identifier prebuiltStructureId = baseDefinition.constructionType().prebuilt()
 				.map(PrebuiltStructure::startStructure).orElse(FTBTeamBases.NO_TEMPLATE_ID);
 		ChunkGenerator chunkGenerator = ServerConfig.CHUNK_GENERATOR.get()
 				.makeGenerator(server, registryAccess, prebuiltStructureId);
 
 		LevelStem dimension = new LevelStem(typeHolder, chunkGenerator);
 
-		final ChunkProgressListener chunkProgressListener = server.progressListenerFactory.create(11);
 		final Executor executor = server.executor;
 		final LevelStorageSource.LevelStorageAccess anvilConverter = server.storageSource;
 		final WorldData worldData = server.getWorldData();
@@ -81,12 +78,12 @@ public class DynamicDimensionManager {
 		// then instantiate level, add border listener, add to map, fire world load event
 
 		// register the actual dimension
-		Registry<LevelStem> dimensionRegistry = server.registryAccess().registryOrThrow(Registries.LEVEL_STEM);
+		Registry<LevelStem> dimensionRegistry = server.registryAccess().lookupOrThrow(Registries.LEVEL_STEM);
 		if (dimensionRegistry instanceof MappedRegistry<LevelStem> writableRegistry) {
-			writableRegistry.unfreeze();
+			writableRegistry.unfreeze(false);
 			writableRegistry.register(dimensionKey, dimension, DIMENSION_REGISTRATION_INFO);
 		} else {
-			throw new IllegalStateException(String.format("Unable to register dimension %s -- dimension registry not writable", dimensionKey.location()));
+			throw new IllegalStateException(String.format("Unable to register dimension %s -- dimension registry not writable", dimensionKey.identifier()));
 		}
 
 		// create the level instance
@@ -97,7 +94,6 @@ public class DynamicDimensionManager {
 				derivedLevelData,
 				worldKey,
 				dimension,
-				chunkProgressListener,
 				worldData.isDebugWorld(),
 				overworld.getSeed(), // don't need to call BiomeManager#obfuscateSeed, overworld seed is already obfuscated
 				List.of(), // "special spawn list"
@@ -105,15 +101,14 @@ public class DynamicDimensionManager {
 				// this is always empty for non-overworld dimensions (including json dimensions)
 				// these spawners are ticked when the world ticks to do their spawning logic,
 				// mods that need "special spawns" for their own dimensions should implement them via tick events or other systems
-				false, // "tick time", true for overworld, always false for nether, end, and json dimensions
-				null // as of 1.20.1 this argument is always null in vanilla, indicating the level should load the sequence from storage
+				false // "tick time", true for overworld, always false for nether, end, and json dimensions
 		);
 
-		// add world border listener, for parity with json dimensions
-		// the vanilla behaviour is that world borders exist in every dimension simultaneously with the same size and position
-		// these border listeners are automatically added to the overworld as worlds are loaded, so we should do that here too
-		// TODO if world-specific world borders are ever added, change it here too
-		overworld.getWorldBorder().addListener(new BorderChangeListener.DelegateBorderChangeListener(newLevel.getWorldBorder()));
+		newLevel.getWorldBorder().setAbsoluteMaxSize(server.getAbsoluteMaxWorldSize());
+		// no, we don't need to remember the worldborder listener to remove it later
+		// worldborder listeners are stored in the specific level's savedata
+		// so if the level unloads it'll get gc'd with everything else
+		server.getPlayerList().addWorldborderListener(newLevel);
 
 		// register level
 		map.put(worldKey, newLevel);
@@ -185,7 +180,7 @@ public class DynamicDimensionManager {
 		// the dimension registry has five sub-collections that need to be cleaned up
 		// we should also eject players from removed worlds so they don't get stuck there
 
-		final Registry<LevelStem> oldRegistry = server.registryAccess().registryOrThrow(Registries.LEVEL_STEM);
+		final Registry<LevelStem> oldRegistry = server.registryAccess().lookupOrThrow(Registries.LEVEL_STEM);
 		if (!(oldRegistry instanceof MappedRegistry<LevelStem> oldMappedRegistry)) {
 			FTBTeamBases.LOGGER.warn("Cannot unload dimensions: dimension registry not an instance of MappedRegistry.");
 			return;
@@ -218,34 +213,32 @@ public class DynamicDimensionManager {
 				// eject players from dead world
 				// iterate over a copy as the world will remove players from the original list
 				for (final ServerPlayer player : Lists.newArrayList(removedLevel.players())) {
-					// send players to their respawn point
-					ResourceKey<Level> respawnKey = player.getRespawnDimension();
+					@Nullable ServerPlayer.RespawnConfig respawnConfig = player.getRespawnConfig();
+					LevelData.RespawnData respawnData = respawnConfig == null
+							? server.getRespawnData()
+							: respawnConfig.respawnData();
+					ResourceKey<Level> respawnKey = respawnData.dimension();
+					BlockPos destinationPos = respawnData.pos();
+
 					// if we're removing their respawn world then just send them to the overworld
 					if (keysToRemove.contains(respawnKey)) {
 						respawnKey = Level.OVERWORLD;
-						player.setRespawnPosition(respawnKey, null, 0, false, false);
-					}
-					if (respawnKey == null) {
-						respawnKey = Level.OVERWORLD;
+						// make sure to wipe the player's respawn point if it was set here
+						if (respawnConfig != null && respawnConfig.respawnData().dimension() == respawnKey) {
+							player.setRespawnPosition(null, false);
+						}
 					}
 					@Nullable ServerLevel destinationLevel = server.getLevel(respawnKey);
 					if (destinationLevel == null) {
 						destinationLevel = overworld;
 					}
 
-					@Nullable
-					BlockPos destinationPos = player.getRespawnPosition();
-					if (destinationPos == null) {
-						destinationPos = destinationLevel.getSharedSpawnPos();
-					}
-
-					final float respawnAngle = player.getRespawnAngle();
 					// "respawning" the player via the player list schedules a task in the server to
 					// run after the post-server tick
 					// that causes some minor logspam due to the player's world no longer being
 					// loaded
 					// teleporting the player via a teleport avoids this
-					player.teleportTo(destinationLevel, destinationPos.getX(), destinationPos.getY(), destinationPos.getZ(), respawnAngle, 0F);
+					player.teleportTo(destinationLevel, destinationPos.getX(), destinationPos.getY(), destinationPos.getZ(), Set.of(), respawnData.pitch(), respawnData.yaw(), true);
 				}
 				// save the world now or it won't be saved later and data that may be wanted to
 				// be kept may be lost
@@ -254,22 +247,6 @@ public class DynamicDimensionManager {
 				// fire world unload event -- when the server stops, this would fire after
 				// worlds get saved, we'll do that here too
 				NeoForge.EVENT_BUS.post(new LevelEvent.Unload(removedLevel));
-
-				// remove the world border listener if possible
-				final WorldBorder overworldBorder = overworld.getWorldBorder();
-				final WorldBorder removedWorldBorder = removedLevel.getWorldBorder();
-				final List<BorderChangeListener> listeners = ReflectionBuddy.WorldBorderAccess.listeners.apply(overworldBorder);
-				BorderChangeListener targetListener = null;
-				for (BorderChangeListener listener : listeners) {
-					if (listener instanceof BorderChangeListener.DelegateBorderChangeListener delegate
-							&& removedWorldBorder == ReflectionBuddy.DelegateBorderChangeListenerAccess.worldBorder.apply(delegate)) {
-						targetListener = listener;
-						break;
-					}
-				}
-				if (targetListener != null) {
-					overworldBorder.removeListener(targetListener);
-				}
 
 				// track the removed level
 				removedLevelKeys.add(levelKeyToRemove);
@@ -283,9 +260,9 @@ public class DynamicDimensionManager {
 
 			for (final var entry : oldRegistry.entrySet()) {
 				final ResourceKey<LevelStem> oldKey = entry.getKey();
-				final ResourceKey<Level> oldLevelKey = ResourceKey.create(Registries.DIMENSION, oldKey.location());
+				final ResourceKey<Level> oldLevelKey = ResourceKey.create(Registries.DIMENSION, oldKey.identifier());
 				final LevelStem dimension = entry.getValue();
-				if (oldKey != null && dimension != null && !removedLevelKeys.contains(oldLevelKey)) {
+				if (dimension != null && !removedLevelKeys.contains(oldLevelKey)) {
 					newRegistry.register(oldKey, dimension, oldRegistry.registrationInfo(oldKey).orElse(DIMENSION_REGISTRATION_INFO));
 				}
 			}

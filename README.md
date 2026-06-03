@@ -77,7 +77,7 @@ This file goes in a datapack in `data/<namespace>/ftb_base_definitions/my_base_t
 ### Base Definition Fields
 
 **Top-level fields:**
-* `id` - A unique template ID (ResourceLocation format). Should match the filename.
+* `id` - A unique template ID (Identifier format). Should match the filename.
 * `display` - Object containing display settings (see below).
 * `construction` - Defines how the base is built (see construction types below).
 * `dimension` - Defines where the base is created (see below).

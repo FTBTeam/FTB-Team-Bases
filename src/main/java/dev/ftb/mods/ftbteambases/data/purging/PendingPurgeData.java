@@ -13,12 +13,11 @@ import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
 import dev.ftb.mods.ftbteambases.util.RegionFileUtil;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,7 +42,6 @@ public record PendingPurgeData(Map<String,PurgeRecord> pending) {
 
     private static PendingPurgeData empty() { return new PendingPurgeData(new HashMap<>()); }
 
-    @NotNull
     private static Path getPendingFilePath(MinecraftServer server) {
         return server.getServerDirectory().resolve(PENDING_PATH);
     }
@@ -103,13 +101,13 @@ public record PendingPurgeData(Map<String,PurgeRecord> pending) {
         return this;
     }
 
-    record PurgeRecord(ResourceLocation dimensionId, RegionExtents extents) {
+    record PurgeRecord(Identifier dimensionId, RegionExtents extents) {
         public static final Codec<PurgeRecord> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-                ResourceLocation.CODEC.fieldOf("dimensionId").forGetter(PurgeRecord::dimensionId),
+                Identifier.CODEC.fieldOf("dimensionId").forGetter(PurgeRecord::dimensionId),
                 RegionExtents.CODEC.fieldOf("extents").forGetter(PurgeRecord::extents)).apply(inst, PurgeRecord::new));
 
         private static PurgeRecord of(ArchivedBaseDetails details) {
-            return new PurgeRecord(details.dimension().location(), details.extents());
+            return new PurgeRecord(details.dimension().identifier(), details.extents());
         }
 
         void doPurge(MinecraftServer server, boolean simulate) {

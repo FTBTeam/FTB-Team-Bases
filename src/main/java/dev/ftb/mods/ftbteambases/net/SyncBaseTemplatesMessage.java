@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public record SyncBaseTemplatesMessage(Collection<BaseDefinition> templates) implements CustomPacketPayload {
-    public static final Type<SyncBaseTemplatesMessage> TYPE = new Type<>(FTBTeamBases.rl("sync_base_templates"));
+    public static final Type<SyncBaseTemplatesMessage> TYPE = new Type<>(FTBTeamBases.id("sync_base_templates"));
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncBaseTemplatesMessage> STREAM_CODEC = StreamCodec.composite(
             BaseDefinition.STREAM_CODEC.apply(ByteBufCodecs.collection(ArrayList::new)), SyncBaseTemplatesMessage::templates,
             SyncBaseTemplatesMessage::new

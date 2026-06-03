@@ -1,9 +1,9 @@
 package dev.ftb.mods.ftbteambases.worldgen.chunkgen;
 
 import com.mojang.serialization.MapCodec;
-import dev.ftb.mods.ftblibrary.config.NameMap;
+import dev.ftb.mods.ftblibrary.util.NameMap;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -38,12 +38,12 @@ public enum ChunkGenerators {
         return codec;
     }
 
-    public ChunkGenerator makeGenerator(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
+    public ChunkGenerator makeGenerator(MinecraftServer server, RegistryAccess registryAccess, Identifier prebuiltStructureId) {
         return factory.provide(server, registryAccess, prebuiltStructureId);
     }
 
     @FunctionalInterface
     public interface ChunkGeneratorProvider {
-        ChunkGenerator provide(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId);
+        ChunkGenerator provide(MinecraftServer server, RegistryAccess registryAccess, Identifier prebuiltStructureId);
     }
 }

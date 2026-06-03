@@ -12,7 +12,7 @@ public class ModSounds {
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(Registries.SOUND_EVENT, FTBTeamBases.MOD_ID);
 
     public static final Supplier<SoundEvent> PORTAL
-            = SOUNDS.register("portal", () -> SoundEvent.createVariableRangeEvent(FTBTeamBases.rl("portal")));
+            = SOUNDS.register("portal", () -> SoundEvent.createVariableRangeEvent(FTBTeamBases.id("portal")));
 
     public static void init(IEventBus eventBus) {
         SOUNDS.register(eventBus);

@@ -1,29 +1,28 @@
 package dev.ftb.mods.ftbteambases.config;
 
-import dev.ftb.mods.ftblibrary.config.NameMap;
+import dev.ftb.mods.ftblibrary.config.value.*;
 import dev.ftb.mods.ftblibrary.icon.Color4I;
-import dev.ftb.mods.ftblibrary.snbt.config.*;
+import dev.ftb.mods.ftblibrary.util.NameMap;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.worldgen.chunkgen.ChunkGenerators;
-import net.minecraft.ResourceLocationException;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.IdentifierException;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface ServerConfig {
     NameMap<GameType> GAME_TYPE_NAME_MAP = NameMap.of(GameType.ADVENTURE, GameType.values()).create();
 
-    SNBTConfig CONFIG = SNBTConfig.create(FTBTeamBases.MOD_ID + "-server");
+    Config CONFIG = Config.create(FTBTeamBases.MOD_ID + "-server");
 
-    SNBTConfig GENERAL = CONFIG.addGroup("general");
+    NameMap<PermissionLevel> PERMISSION_LEVEL_NAME_MAP = NameMap.of(PermissionLevel.ALL, PermissionLevel.values())
+            .create();
+
+    Config GENERAL = CONFIG.addGroup("general");
     BooleanValue CLEAR_PLAYER_INV_ON_JOIN = GENERAL.addBoolean("clear_player_inv_on_join", false)
             .comment("When set to true, the player's inventory will be cleared when joining a team");
     BooleanValue HEAL_PLAYER_ON_JOIN = GENERAL.addBoolean("heal_player_on_join", true)
@@ -34,13 +33,13 @@ public interface ServerConfig {
             .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
     IntValue BASE_SEPARATION = GENERAL.addInt("base_separation", 4, 0, 16)
             .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
-    IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 0, 0, 4)
+    EnumValue<PermissionLevel> HOME_CMD_PERMISSION_LEVEL = GENERAL.addEnum("home_cmd_permission_level", PERMISSION_LEVEL_NAME_MAP)
             .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
     BooleanValue ALLOW_LOBBY_SPECTATORS = GENERAL.addBoolean("allow_lobby_spectators", false)
             .comment("If true, allow spectator-mode players to use the lobby portal");
 
-    SNBTConfig LOBBY = CONFIG.addGroup("lobby");
-    StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())
+    Config LOBBY = CONFIG.addGroup("lobby");
+    StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.id("lobby").toString())
             .comment("Resource location of the structure NBT for the lobby",
                     "This is ignored if using pregenerated lobby region files (.mca files copied from ftbteambases/pregen_initial/)");
     IntValue LOBBY_Y_POS = LOBBY.addInt("lobby_y_pos", 0, -64, 256)
@@ -52,7 +51,7 @@ public interface ServerConfig {
     DoubleValue LOBBY_PLAYER_YAW = LOBBY.addDouble("lobby_player_yaw", 0.0, 0.0, 360.0)
             .comment("Player Y-axis rotation when initially spawning in, or returning to, the lobby. (0 = south, 90 = west, 180 = north, 270 = east)");
 
-    SNBTConfig WORLDGEN = CONFIG.addGroup("worldgen");
+    Config WORLDGEN = CONFIG.addGroup("worldgen");
     EnumValue<ChunkGenerators> CHUNK_GENERATOR = WORLDGEN.addEnum("chunk_generator", ChunkGenerators.NAME_MAP)
             .comment("The chunk generator to use. SIMPLE_VOID (void dim, one biome), MULTI_BIOME_VOID (void dim, overworld-like biome distribution) and CUSTOM (full worldgen, customisable biome source & noise settings)");
     StringValue SINGLE_BIOME_ID = WORLDGEN.addString("single_biome_id", "")
@@ -66,7 +65,7 @@ public interface ServerConfig {
     BooleanValue ENTITIES_IN_START_STRUCTURE = WORLDGEN.addBoolean("entities_in_start_structure", true)
             .comment("If true, then any entities saved in the starting structure NBT will be included when the structure is generated");
 
-    SNBTConfig NETHER = CONFIG.addGroup("nether");
+    Config NETHER = CONFIG.addGroup("nether");
     BooleanValue ALLOW_NETHER_PORTALS = NETHER.addBoolean("allow_nether_portals", true)
             .comment("When set to true, nether portals may be constructed in team dimensions");
     BooleanValue TEAM_SPECIFIC_NETHER_ENTRY_POINT = NETHER.addBoolean("team_specific_nether_entry_point", true)
@@ -81,7 +80,7 @@ public interface ServerConfig {
     IntValue CUSTOM_PORTAL_Y_POS = NETHER.addInt("portal_y_pos", 0)
             .comment("See 'use_custom_portal_y'.");
 
-    SNBTConfig AUTOCLAIMING = CONFIG.addGroup("autoclaiming")
+    Config AUTOCLAIMING = CONFIG.addGroup("autoclaiming")
             .comment("Autoclaim lobby areas (FTB Chunks required)",
                     "If you change any autoclaim settings after initial autoclaim is done, run '/ftbteambases redo_autoclaim'");
     IntValue LOBBY_RADIUS = AUTOCLAIMING.addInt("lobby_radius", 0, 0, Integer.MAX_VALUE)
@@ -100,10 +99,10 @@ public interface ServerConfig {
     IntArrayValue LOBBY_CLAIM_CENTER = LOBBY.addIntArray("lobby_claim_center", new int[]{ 0, 0 })
             .comment("X/Z chunk position for the centre of the claimed area");
 
-    static Optional<ResourceLocation> lobbyLocation() {
+    static Optional<Identifier> lobbyLocation() {
         try {
-            return Optional.of(ResourceLocation.parse(LOBBY_STRUCTURE_LOCATION.get()));
-        } catch (ResourceLocationException ignored) {
+            return Optional.of(Identifier.parse(LOBBY_STRUCTURE_LOCATION.get()));
+        } catch (IdentifierException ignored) {
             FTBTeamBases.LOGGER.error("invalid lobby resource location: {}", LOBBY_STRUCTURE_LOCATION.get());
             return Optional.empty();
         }
@@ -114,7 +113,7 @@ public interface ServerConfig {
     }
 
     static Color4I getLobbyTeamColor() {
-        Color4I teamColor = Color4I.fromString(ServerConfig.LOBBY_CLAIM_COLOR.get());
+        Color4I teamColor = Color4I.parse(ServerConfig.LOBBY_CLAIM_COLOR.get());
         return teamColor.isEmpty() ? Color4I.rgb(0xFF40FF) : teamColor;
     }
 

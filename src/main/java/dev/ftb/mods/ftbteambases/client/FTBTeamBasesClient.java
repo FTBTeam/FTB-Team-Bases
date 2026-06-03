@@ -6,15 +6,14 @@ import dev.ftb.mods.ftbteambases.net.CreateBaseMessage;
 import dev.ftb.mods.ftbteambases.net.OpenVisitScreenMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 public class FTBTeamBasesClient {
@@ -23,14 +22,10 @@ public class FTBTeamBasesClient {
     }
 
     public static void openSelectionScreen() {
-        Minecraft.getInstance().setScreen(new BaseSelectionScreen(baseId -> PacketDistributor.sendToServer(new CreateBaseMessage(baseId))));
+        Minecraft.getInstance().setScreen(new BaseSelectionScreen(baseId -> ClientPacketDistributor.sendToServer(new CreateBaseMessage(baseId))));
     }
 
-    public static Level clientLevel() {
-        return Objects.requireNonNull(Minecraft.getInstance().level);
-    }
-
-    public static void openVisitScreen(Map<ResourceLocation, List<OpenVisitScreenMessage.BaseData>> dimensionData) {
+    public static void openVisitScreen(Map<Identifier, List<OpenVisitScreenMessage.BaseData>> dimensionData) {
         Minecraft.getInstance().setScreen(new VisitScreen(dimensionData));
     }
 }

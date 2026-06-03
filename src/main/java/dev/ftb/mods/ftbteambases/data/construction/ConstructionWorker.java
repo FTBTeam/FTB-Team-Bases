@@ -1,12 +1,12 @@
 package dev.ftb.mods.ftbteambases.data.construction;
 
 import dev.ftb.mods.ftblibrary.math.XZ;
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.data.bases.LiveBaseDetails;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
 import dev.ftb.mods.ftbteambases.util.RegionExtents;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -60,7 +60,7 @@ public interface ConstructionWorker {
         destLevel.getChunk(spawnXZ.x() >> 4, spawnXZ.z() >> 4);
         int yPos = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE, spawnXZ.x(), spawnXZ.z());
 
-        if (yPos > destLevel.getMinBuildHeight()) {
+        if (yPos > destLevel.getMinY()) {
             return new BlockPos(spawnXZ.x(), yPos, spawnXZ.z()).above(offset.getY());
         } else {
             return findSafeSpawn(destLevel, baseDefinition, spawnXZ);
@@ -72,7 +72,7 @@ public interface ConstructionWorker {
         BlockPos start = new BlockPos(spawnXZ.x() - 8, 0, spawnXZ.z() - 8);
         for (BlockPos.MutableBlockPos pos : BlockPos.spiralAround(start, 16, Direction.EAST, Direction.SOUTH)) {
             int y = destLevel.getHeight(Heightmap.Types.WORLD_SURFACE, pos.getX(), pos.getZ());
-            if (y > destLevel.getMinBuildHeight()) {
+            if (y > destLevel.getMinY()) {
                 return new BlockPos(pos.getX(), y + 1, pos.getZ());
             }
         }
@@ -88,7 +88,7 @@ public interface ConstructionWorker {
     }
 
     static ResourceKey<Level> makePrivateDimensionKeyFor(String playerName) {
-        return ResourceKey.create(Registries.DIMENSION, FTBTeamBases.rl(
+        return ResourceKey.create(Registries.DIMENSION, FTBTeamBases.id(
                 DimensionUtils.PRIVATE_DIM_PREFIX + playerName + "_" + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())
         ));
     }

@@ -16,12 +16,12 @@ public class ModBlocks {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(FTBTeamBases.MOD_ID);
 
     public static final DeferredBlock<BasesPortalBlock> PORTAL
-            = BLOCKS.register("portal", () -> new BasesPortalBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.NETHER_PORTAL)));
+            = BLOCKS.registerBlock("portal", BasesPortalBlock::new, () -> BlockBehaviour.Properties.ofFullCopy(Blocks.NETHER_PORTAL));
 
     // Note: not in creative tab: you can only get this with "/give @s ftbteambases:portal"
     //  or by middle-clicking a portal in creative mode
     // Intended for builders to create pregen lobby structures
-    public static final DeferredItem<Item> PORTAL_ITEM = ITEMS.register("portal", () -> new BlockItem(PORTAL.get(), new Item.Properties()));
+    public static final DeferredItem<Item> PORTAL_ITEM = ITEMS.registerItem("portal", props -> new BlockItem(PORTAL.get(), props), Item.Properties::new);
 
     public static void init(IEventBus bus) {
         BLOCKS.register(bus);

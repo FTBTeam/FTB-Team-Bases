@@ -1,6 +1,6 @@
 package dev.ftb.mods.ftbteambases.data.definition;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Custom chunk generators which support a prebuilt structure should implement this
@@ -13,5 +13,5 @@ public interface BaseDefinitionProvider {
      *
      * @return a resource location for the base definition
      */
-    ResourceLocation getBaseDefinitionId();
+    Identifier getBaseDefinitionId();
 }

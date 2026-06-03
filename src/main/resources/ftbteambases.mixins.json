@@ -10,6 +10,7 @@
     "BaseFireBlockMixin",
     "ChunkGeneratorAccess",
     "EntityMixin",
+    "FoodDataAccess",
     "LevelAccess",
     "NetherPortalBlockAccess",
     "NetherPortalBlockMixin",

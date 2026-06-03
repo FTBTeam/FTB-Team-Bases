@@ -16,27 +16,26 @@ import dev.ftb.mods.ftbteambases.data.construction.workers.RelocatingPregenWorke
 import dev.ftb.mods.ftbteambases.data.construction.workers.SingleStructureWorker;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.loading.FMLLoader;
 
 import java.io.IOException;
 import java.util.Optional;
 
-import static dev.ftb.mods.ftbteambases.FTBTeamBases.rl;
-
-public record BaseDefinition(ResourceLocation id, DisplaySettings displaySettings, BlockPos spawnOffset,
+public record BaseDefinition(Identifier id, DisplaySettings displaySettings, BlockPos spawnOffset,
                              Optional<BlockPos> absoluteSpawn,
                              DimensionSettings dimensionSettings, ConstructionType constructionType, XZ extents)
 {
-    public static final ResourceLocation DEFAULT_PREVIEW = rl("default");
-    public static final ResourceLocation FALLBACK_IMAGE = rl("textures/fallback.png");
-    public static final ResourceLocation DEFAULT_DIMENSION_TYPE = rl("default");
-    public static final ResourceLocation DEFAULT_STRUCTURE_SET = rl( "default");
+    public static final Identifier DEFAULT_PREVIEW = FTBTeamBases.id("default");
+    public static final Identifier FALLBACK_IMAGE = FTBTeamBases.id("textures/fallback.png");
+    public static final Identifier DEFAULT_DIMENSION_TYPE = FTBTeamBases.id("default");
+    public static final Identifier DEFAULT_STRUCTURE_SET = FTBTeamBases.id( "default");
 
     public static final Codec<BaseDefinition> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            ResourceLocation.CODEC.fieldOf("id").forGetter(BaseDefinition::id),
+            Identifier.CODEC.fieldOf("id").forGetter(BaseDefinition::id),
             DisplaySettings.CODEC.fieldOf("display").forGetter(BaseDefinition::displaySettings),
             BlockPos.CODEC.optionalFieldOf("spawn_offset", BlockPos.ZERO).forGetter(BaseDefinition::spawnOffset),
             BlockPos.CODEC.optionalFieldOf("absolute_spawn").forGetter(BaseDefinition::absoluteSpawn),
@@ -45,25 +44,15 @@ public record BaseDefinition(ResourceLocation id, DisplaySettings displaySetting
             XZ.CODEC.optionalFieldOf("extents", XZ.of(1,1)).forGetter(BaseDefinition::extents)
     ).apply(instance, BaseDefinition::new));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, BaseDefinition> STREAM_CODEC = StreamCodec.of(
-            (buf, def) -> {
-                ResourceLocation.STREAM_CODEC.encode(buf, def.id());
-                DisplaySettings.STREAM_CODEC.encode(buf, def.displaySettings());
-                BlockPos.STREAM_CODEC.encode(buf, def.spawnOffset());
-                buf.writeOptional(def.absoluteSpawn(), (b, pos) -> BlockPos.STREAM_CODEC.encode((RegistryFriendlyByteBuf) b, pos));
-                DimensionSettings.STREAM_CODEC.encode(buf, def.dimensionSettings());
-                ConstructionType.STREAM_CODEC.encode(buf, def.constructionType());
-                XZ.STREAM_CODEC.encode(buf, def.extents());
-            },
-            buf -> new BaseDefinition(
-                    ResourceLocation.STREAM_CODEC.decode(buf),
-                    DisplaySettings.STREAM_CODEC.decode(buf),
-                    BlockPos.STREAM_CODEC.decode(buf),
-                    buf.readOptional(b -> BlockPos.STREAM_CODEC.decode((RegistryFriendlyByteBuf) b)),
-                    DimensionSettings.STREAM_CODEC.decode(buf),
-                    ConstructionType.STREAM_CODEC.decode(buf),
-                    XZ.STREAM_CODEC.decode(buf)
-            )
+    public static final StreamCodec<RegistryFriendlyByteBuf, BaseDefinition> STREAM_CODEC = StreamCodec.composite(
+            Identifier.STREAM_CODEC, BaseDefinition::id,
+            DisplaySettings.STREAM_CODEC, BaseDefinition::displaySettings,
+            BlockPos.STREAM_CODEC, BaseDefinition::spawnOffset,
+            ByteBufCodecs.optional(BlockPos.STREAM_CODEC), BaseDefinition::absoluteSpawn,
+            DimensionSettings.STREAM_CODEC, BaseDefinition::dimensionSettings,
+            ConstructionType.STREAM_CODEC, BaseDefinition::constructionType,
+            XZ.STREAM_CODEC, BaseDefinition::extents,
+            BaseDefinition::new
     );
 
     public static Optional<BaseDefinition> fromJson(JsonElement element) {
@@ -93,7 +82,7 @@ public record BaseDefinition(ResourceLocation id, DisplaySettings displaySetting
     }
 
     public boolean shouldShowInGui() {
-        return !displaySettings.devMode() || !FMLLoader.isProduction() || ClientConfig.SHOW_DEV_BASES.get();
+        return !displaySettings.devMode() || !FMLLoader.getCurrent().isProduction() || ClientConfig.SHOW_DEV_BASES.get();
     }
 
     public int displayOrder() {
@@ -108,7 +97,7 @@ public record BaseDefinition(ResourceLocation id, DisplaySettings displaySetting
         return displaySettings().author();
     }
 
-    public ResourceLocation previewImage() {
+    public Identifier previewImage() {
         return displaySettings().previewImage().orElse(DEFAULT_PREVIEW);
     }
 }

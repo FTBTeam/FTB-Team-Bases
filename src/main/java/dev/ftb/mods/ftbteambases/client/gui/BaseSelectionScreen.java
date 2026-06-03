@@ -2,25 +2,26 @@ package dev.ftb.mods.ftbteambases.client.gui;
 
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.function.Consumer;
 
 public class BaseSelectionScreen extends Screen {
-    private final Consumer<ResourceLocation> onSelect;
+    private final Consumer<Identifier> onSelect;
     private StartList startList;
     private Button createButton;
     private AbstractTexture fallbackIcon;
@@ -28,7 +29,7 @@ public class BaseSelectionScreen extends Screen {
     static final int UPPER_HEIGHT = 80;
     static final int LOWER_HEIGHT = 40;
 
-    public BaseSelectionScreen(Consumer<ResourceLocation> onSelect) {
+    public BaseSelectionScreen(Consumer<Identifier> onSelect) {
         super(Component.empty());
 
         this.onSelect = onSelect;
@@ -42,10 +43,10 @@ public class BaseSelectionScreen extends Screen {
         EditBox searchBox = new EditBox(font, width / 2 - 160 / 2, 40, 160, 20, Component.empty());
         searchBox.setResponder(startList::addChildren);
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.back"), btn -> onClose())
+        addRenderableWidget(Button.builder(Component.translatable("gui.back"), _ -> onClose())
                 .size(100, 20).pos(width / 2 - 130, height - 30).build());
 
-        addRenderableWidget(createButton = Button.builder(Component.translatable("ftbteambases.gui.create"), btn -> doCreate())
+        addRenderableWidget(createButton = Button.builder(Component.translatable("ftbteambases.gui.create"), _ -> doCreate())
                 .size(150, 20).pos(width / 2 - 20, height - 30).build());
         createButton.active = false;
 
@@ -65,11 +66,11 @@ public class BaseSelectionScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 
         String value = Component.translatable("ftbteambases.gui.select_start").getString();
-        graphics.drawString(font, value, (width - font.width(value)) / 2, 20, 0xFFFFFF);
+        graphics.text(font, value, (width - font.width(value)) / 2, 20, 0xFFFFFFFF);
     }
 
     private class StartList extends AbstractSelectionList<StartList.Entry> {
@@ -85,7 +86,7 @@ public class BaseSelectionScreen extends Screen {
         }
 
         @Override
-        protected int getScrollbarPosition() {
+        protected int scrollBarX() {
             return width / 2 + 170;
         }
 
@@ -112,36 +113,35 @@ public class BaseSelectionScreen extends Screen {
 
         private class Entry extends AbstractSelectionList.Entry<Entry> {
             private final BaseDefinition baseDef;
-            private long lastClickTime;
 
             private Entry(BaseDefinition baseDef) {
                 this.baseDef = baseDef;
             }
 
             @Override
-            public boolean mouseClicked(double x, double y, int partialTick) {
+            public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
                 StartList.this.setSelected(this);
 
-                if (Util.getMillis() - lastClickTime < 250L) {
+                if (doubleClick) {
                     BaseSelectionScreen.this.onClose();
                     BaseSelectionScreen.this.onSelect.accept(baseDef.id());
                     return true;
                 } else {
-                    lastClickTime = Util.getMillis();
                     return false;
                 }
             }
 
             @Override
-            public void render(GuiGraphics graphics, int entryId, int top, int left, int entryWidth, int entryHeight, int mouseX, int mouseY, boolean bl, float partialTicks) {
+            public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
                 Font font = Minecraft.getInstance().font;
 
-                int startX = left + 80;
-                graphics.drawString(font, Component.translatable(baseDef.description()), startX, top + 10, 0xFFFFFF);
-                graphics.drawString(font, Component.translatable("ftbteambases.gui.by", baseDef.author()), startX, top + 26, 0xD3D3D3);
+                int startX = getContentX() + 80;
+                int top = getContentY();
+                graphics.text(font, Component.translatable(baseDef.description()), startX, top + 10, 0xFFFFFFFF);
+                graphics.text(font, Component.translatable("ftbteambases.gui.by", baseDef.author()), startX, top + 26, 0xFFD3D3D3);
 
-                ResourceLocation preview = baseDef.previewImage();
-                graphics.blit(preview, left + 7, top + 7, 0f, 0f, 56, 32, 56, 32);
+                Identifier preview = baseDef.previewImage();
+                graphics.blit(RenderPipelines.GUI_TEXTURED, preview, getContentX() + 7, top + 7, 0f, 0f, 56, 32, 56, 32);
             }
         }
     }

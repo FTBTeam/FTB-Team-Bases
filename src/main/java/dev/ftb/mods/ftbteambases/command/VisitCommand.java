@@ -8,10 +8,10 @@ import dev.ftb.mods.ftbteambases.net.OpenVisitScreenMessage;
 import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
-import dev.ftb.mods.ftbteams.data.TeamArgument;
+import dev.ftb.mods.ftbteams.command.TeamArgument;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -27,26 +27,26 @@ import static net.minecraft.commands.Commands.literal;
 public class VisitCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("visit")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .executes(ctx -> doOpenVisitScreen(ctx.getSource()))
                 .then(argument("name", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> CommandUtils.suggestLiveBases(builder))
+                        .suggests((ctx, builder) -> CommandUtils.suggestLiveBases(ctx.getSource().getServer(), builder))
                         .executes(ctx -> doVisit(ctx.getSource(), StringArgumentType.getString(ctx, "name"), false))
                 );
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> registerNether() {
         return literal("nether-visit")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(argument("name", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> CommandUtils.suggestLiveBases(builder))
+                        .suggests((ctx, builder) -> CommandUtils.suggestLiveBases(ctx.getSource().getServer(), builder))
                         .executes(ctx -> doVisit(ctx.getSource(), StringArgumentType.getString(ctx, "name"), true))
                 );
     }
 
     private static int doOpenVisitScreen(CommandSourceStack source) throws CommandSyntaxException {
-        Map<ResourceLocation, List<OpenVisitScreenMessage.BaseData>> dimensionData = new HashMap<>();
-        Map<ResourceLocation, Double> tickTimes = new HashMap<>();
+        Map<Identifier, List<OpenVisitScreenMessage.BaseData>> dimensionData = new HashMap<>();
+        Map<Identifier, Double> tickTimes = new HashMap<>();
 
         BaseInstanceManager mgr = BaseInstanceManager.get(source.getServer());
 
@@ -54,8 +54,8 @@ public class VisitCommand {
             ServerLevel serverLevel = source.getServer().getLevel(base.dimension());
             if (serverLevel != null) {
                 String teamName = FTBTeamsAPI.api().getManager().getTeamByID(id).map(Team::getShortName).orElse("???");
-                double tickTime = tickTimes.computeIfAbsent(serverLevel.dimension().location(), k -> MiscUtil.getTickTime(source.getServer(), serverLevel.dimension()));
-                dimensionData.computeIfAbsent(base.dimension().location(), k -> new ArrayList<>())
+                double tickTime = tickTimes.computeIfAbsent(serverLevel.dimension().identifier(), k -> MiscUtil.getTickTime(source.getServer(), serverLevel.dimension()));
+                dimensionData.computeIfAbsent(base.dimension().identifier(), k -> new ArrayList<>())
                         .add(OpenVisitScreenMessage.BaseData.create(serverLevel, teamName, tickTime, false));
             }
         });
@@ -63,8 +63,8 @@ public class VisitCommand {
         mgr.getArchivedBases().forEach(base -> {
             ServerLevel serverLevel = source.getServer().getLevel(base.dimension());
             if (serverLevel != null) {
-                double tickTime = tickTimes.computeIfAbsent(serverLevel.dimension().location(), k -> MiscUtil.getTickTime(source.getServer(), serverLevel.dimension()));
-                dimensionData.computeIfAbsent(base.dimension().location(), k -> new ArrayList<>())
+                double tickTime = tickTimes.computeIfAbsent(serverLevel.dimension().identifier(), k -> MiscUtil.getTickTime(source.getServer(), serverLevel.dimension()));
+                dimensionData.computeIfAbsent(base.dimension().identifier(), k -> new ArrayList<>())
                         .add(OpenVisitScreenMessage.BaseData.create(serverLevel, base.archiveId(), tickTime, true));
             }
         });

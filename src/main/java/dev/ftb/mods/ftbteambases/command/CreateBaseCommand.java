@@ -13,7 +13,7 @@ import static net.minecraft.commands.Commands.literal;
 public class CreateBaseCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("create")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(argument("template", BaseDefinitionArgument.create())
                         .suggests((ctx, builder) -> CommandUtils.suggestDefinitions(builder))
                         .executes(ctx -> doCreateBase(ctx.getSource(), BaseDefinitionArgument.get(ctx, "template")))

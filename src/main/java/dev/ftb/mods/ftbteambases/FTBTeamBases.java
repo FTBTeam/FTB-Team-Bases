@@ -19,10 +19,9 @@ import dev.ftb.mods.ftbteambases.registry.ModSounds;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import dev.ftb.mods.ftbteambases.util.*;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
-import dev.ftb.mods.ftbteams.api.event.TeamEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,13 +30,14 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerRespawnPositionEvent;
@@ -50,10 +50,11 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Objects;
 
 import static net.minecraft.world.level.Level.NETHER;
 import static net.minecraft.world.level.Level.OVERWORLD;
@@ -62,10 +63,17 @@ import static net.minecraft.world.level.Level.OVERWORLD;
 public class FTBTeamBases {
     public static final String MOD_ID = "ftbteambases";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
-    public static final ResourceLocation NO_TEMPLATE_ID = rl("none");
-    public static final ResourceLocation SHARED_DIMENSION_ID = rl("bases");
+    public static final Identifier NO_TEMPLATE_ID = id("none");
+    public static final Identifier SHARED_DIMENSION_ID = id("bases");
+
+    @Nullable
+    private static FTBTeamBases instance;
+    @Nullable
+    private PurgeManager purgeManager;
 
     public FTBTeamBases(IEventBus modBus) {
+        instance = this;
+
         try {
             Files.createDirectories(RegionFileRelocator.PREGEN_PATH);
         } catch (IOException e) {
@@ -81,46 +89,51 @@ public class FTBTeamBases {
         ConfigManager.getInstance().registerServerConfig(ServerConfig.CONFIG, "server", false);
         ConfigManager.getInstance().registerClientConfig(ClientConfig.CONFIG, "client");
 
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::serverBeforeStart);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::serverStarting);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::serverStarted);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::serverStopping);
+        NeoForge.EVENT_BUS.addListener(this::serverBeforeStart);
+        NeoForge.EVENT_BUS.addListener(this::serverStarting);
+        NeoForge.EVENT_BUS.addListener(this::serverStarted);
+        NeoForge.EVENT_BUS.addListener(this::serverStopping);
 
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, this::onSleepFinished);
 
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::onLevelLoad);
         NeoForge.EVENT_BUS.addListener(CommandUtils::registerCommands);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::onServerTick);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::playerEnterServer);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::playerJoinLevel);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::playerChangedDimension);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::registerReloadListeners);
-        NeoForge.EVENT_BUS.addListener(FTBTeamBases::onPlayerRespawn);
+        NeoForge.EVENT_BUS.addListener(this::onLevelLoad);
+        NeoForge.EVENT_BUS.addListener(this::onServerTick);
+        NeoForge.EVENT_BUS.addListener(this::playerEnterServer);
+        NeoForge.EVENT_BUS.addListener(this::playerJoinLevel);
+        NeoForge.EVENT_BUS.addListener(this::playerChangedDimension);
+        NeoForge.EVENT_BUS.addListener(this::registerReloadListeners);
+        NeoForge.EVENT_BUS.addListener(this::onPlayerRespawn);
 
-        TeamEvent.PLAYER_JOINED_PARTY.register(TeamEventListener::teamPlayerJoin);
-        TeamEvent.PLAYER_LEFT_PARTY.register(TeamEventListener::teamPlayerLeftParty);
-        TeamEvent.DELETED.register(TeamEventListener::teamDeleted);
+        NeoForge.EVENT_BUS.addListener(TeamEventListener::teamPlayerJoin);
+        NeoForge.EVENT_BUS.addListener(TeamEventListener::teamPlayerLeftParty);
+        NeoForge.EVENT_BUS.addListener(TeamEventListener::teamDeleted);
     }
 
-    private static void registerReloadListeners(AddReloadListenerEvent event) {
-        event.addListener(new BaseDefinitionManager.ReloadListener());
+    public static FTBTeamBases getInstance() {
+        return Objects.requireNonNull(instance);
     }
 
-    private static void onServerTick(ServerTickEvent.Post event) {
+    private void registerReloadListeners(AddServerReloadListenersEvent event) {
+        event.addListener(id("base_definitions"), new BaseDefinitionManager.ReloadListener());
+    }
+
+    private void onServerTick(ServerTickEvent.Post event) {
         RelocatorTracker.INSTANCE.tick(event.getServer());
         BaseConstructionManager.INSTANCE.tick(event.getServer());
         DynamicDimensionManager.unregisterScheduledDimensions(event.getServer());
     }
 
-    private static void serverBeforeStart(ServerAboutToStartEvent event) {
-        PurgeManager.INSTANCE.init(event.getServer());
+    private void serverBeforeStart(ServerAboutToStartEvent event) {
+        purgeManager = new PurgeManager(event.getServer());
+        purgeManager.checkForPurges();
     }
 
-    private static void serverStarting(ServerStartingEvent event) {
+    private void serverStarting(ServerStartingEvent event) {
         FTBTeamsAPI.api().setPartyCreationFromAPIOnly(true);
     }
 
-    private static void serverStarted(ServerStartedEvent event) {
+    private void serverStarted(ServerStartedEvent event) {
         StartupConfig.lobbyDimension().ifPresent(dim -> {
             // only override overworld default spawn pos if the lobby is actually in the overworld
             if (dim.equals(OVERWORLD)) {
@@ -131,19 +144,22 @@ public class FTBTeamBases {
                 }
 
                 BaseInstanceManager mgr = BaseInstanceManager.get(event.getServer());
-                if (mgr.isLobbyCreated() && !level.getSharedSpawnPos().equals(mgr.getLobbySpawnPos())) {
-                    level.setDefaultSpawnPos(mgr.getLobbySpawnPos(), 180F);
+                if (mgr.isLobbyCreated() && !level.getRespawnData().globalPos().pos().equals(mgr.getLobbySpawnPos())) {
+                    LevelData.RespawnData respawnData = LevelData.RespawnData.of(level.dimension(), mgr.getLobbySpawnPos(), 180F, 0F);
+                    level.setRespawnData(respawnData);
                     LOGGER.info("Updating overworld spawn pos to the lobby spawn pos: {}", mgr.getLobbySpawnPos());
                 }
             }
         });
+
+        getPurgeManager().cleanUpPurgedArchives(BaseInstanceManager.get(event.getServer()));
     }
 
-    private static void serverStopping(ServerStoppingEvent server) {
-        PurgeManager.INSTANCE.onShutdown();
+    private void serverStopping(ServerStoppingEvent event) {
+        purgeManager = null;
     }
 
-    private static void onLevelLoad(LevelEvent.Load event) {
+    private void onLevelLoad(LevelEvent.Load event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             if (serverLevel.dimension() == OVERWORLD) {
                 if (LobbyPregen.maybePregenLobby(serverLevel.getServer())) {
@@ -162,14 +178,14 @@ public class FTBTeamBases {
         }
     }
 
-    private static void playerEnterServer(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+    private void playerEnterServer(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             SyncBaseTemplatesMessage.syncTo(player);
-            BaseInstanceManager.get().checkForOrphanedPlayer(player);
+            BaseInstanceManager.get(player.level().getServer()).checkForOrphanedPlayer(player);
         }
     }
 
-    private static void playerJoinLevel(EntityJoinLevelEvent event) {
+    private void playerJoinLevel(EntityJoinLevelEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && event.getLevel() instanceof ServerLevel serverLevel) {
             if (isFirstTimeConnecting(player, serverLevel)) {
                 ServerLevel destLevel = StartupConfig.lobbyDimension()
@@ -178,10 +194,10 @@ public class FTBTeamBases {
 
                 // Send new players to the lobby. Note that respawn position after death is handled by
                 //   the PlayerRespawnPositionEvent handler, so we don't use player.setRespawnPosition() anymore
-                BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
+                BlockPos lobbySpawnPos = BaseInstanceManager.get(player.level().getServer()).getLobbySpawnPos();
                 DimensionUtils.teleport(player, destLevel.dimension(), lobbySpawnPos, 
                         ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
-                BaseInstanceManager.get().addKnownPlayer(player);
+                BaseInstanceManager.get(serverLevel.getServer()).addKnownPlayer(player);
             }
 
             if (DimensionUtils.isVoidChunkGen(serverLevel.getChunkSource().getGenerator())) {
@@ -191,20 +207,20 @@ public class FTBTeamBases {
         }
     }
 
-    private static boolean isFirstTimeConnecting(ServerPlayer player, ServerLevel level) {
+    private boolean isFirstTimeConnecting(ServerPlayer player, ServerLevel level) {
         return level.dimension().equals(OVERWORLD)
-                && player.getRespawnDimension().equals(OVERWORLD)
-                && !BaseInstanceManager.get(player.server).isPlayerKnown(player);
+                && (player.getRespawnConfig() == null || player.getRespawnConfig().respawnData().dimension().equals(OVERWORLD))
+                && !BaseInstanceManager.get(player.level().getServer()).isPlayerKnown(player);
     }
 
-    private static void playerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+    private void playerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             switchGameMode(player, event.getFrom(), event.getTo());
             handleNetherTravel(player, event.getFrom(), event.getTo());
         }
     }
 
-    private static void switchGameMode(ServerPlayer player, @Nullable ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
+    private void switchGameMode(ServerPlayer player, @Nullable ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
         GameType lobbyGameMode = ServerConfig.LOBBY_GAME_MODE.get();
         ResourceKey<Level> lobby = StartupConfig.lobbyDimension().orElse(OVERWORLD);
 
@@ -215,9 +231,9 @@ public class FTBTeamBases {
         }
     }
 
-    private static void handleNetherTravel(ServerPlayer player, ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
+    private void handleNetherTravel(ServerPlayer player, ResourceKey<Level> oldDim, ResourceKey<Level> newDim) {
         if (player.isOnPortalCooldown()) {
-            var mgr = BaseInstanceManager.get(player.server);
+            var mgr = BaseInstanceManager.get(player.level().getServer());
 
             if (newDim.equals(NETHER)) {
                 // travelling to the Nether: if from our team dimension, store the player's location (in the from-dimension!) to later return there
@@ -247,48 +263,53 @@ public class FTBTeamBases {
                 StructurePlaceSettings placeSettings = DimensionUtils.makePlacementSettings(lobby);
 
                 BlockPos lobbyPos = BlockPos.ZERO.offset(-(lobby.getSize().getX() / 2), ServerConfig.LOBBY_Y_POS.get(), -(lobby.getSize().getZ() / 2));
-                lobby.placeInWorld(serverLevel, lobbyPos, lobbyPos, placeSettings, serverLevel.random, Block.UPDATE_ALL);
+                lobby.placeInWorld(serverLevel, lobbyPos, lobbyPos, placeSettings, serverLevel.getRandom(), Block.UPDATE_ALL);
 
                 BlockPos relativePos = DimensionUtils.findSpawnBlockInStructure(lobby).orElse(BlockPos.ZERO);
                 BlockPos playerSpawn = lobbyPos.offset(relativePos.getX(), relativePos.getY(), relativePos.getZ());
 
                 mgr.setLobbySpawnPos(playerSpawn, false);
                 serverLevel.removeBlock(playerSpawn, false);
-                serverLevel.setDefaultSpawnPos(playerSpawn, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue());
+                LevelData.RespawnData respawnData = LevelData.RespawnData.of(serverLevel.dimension(), lobbyPos, ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), 0F);
+                serverLevel.setRespawnData(respawnData);
 
                 mgr.setLobbyCreated(true);
                 mgr.forceSave(serverLevel.getServer());
 
-                LOGGER.info("Spawned lobby structure @ {} / {}", serverLevel.dimension().location(), lobbyPos);
+                LOGGER.info("Spawned lobby structure @ {} / {}", serverLevel.dimension().identifier(), lobbyPos);
             });
         }
     }
 
     private void onSleepFinished(final SleepFinishedTimeEvent event) {
-        if (event.getLevel() instanceof ServerLevel level && level.dimension().location().getNamespace().equals(FTBTeamBases.MOD_ID)) {
+        if (event.getLevel() instanceof ServerLevel level && level.dimension().identifier().getNamespace().equals(FTBTeamBases.MOD_ID)) {
             // player has slept in a dynamic dimension
             // sleeping in dynamic dimensions doesn't work in general: https://bugs.mojang.com/browse/MC-188578
             // best we can do here is advance the overworld time
-            MiscUtil.setOverworldTime(level.getServer(), event.getNewTime());
+            MiscUtil.setOverworldTime(level.getServer(), event.getAdjustment());
         }
     }
 
-    private static void onPlayerRespawn(PlayerRespawnPositionEvent event) {
-        MinecraftServer server = event.getEntity().getServer();
+    private void onPlayerRespawn(PlayerRespawnPositionEvent event) {
+        MinecraftServer server = event.getEntity().level().getServer();
         if (server != null) {
             BaseInstanceManager mgr = BaseInstanceManager.get(server);
             ServerLevel lobbyLvl = server.getLevel(StartupConfig.lobbyDimension().orElse(Level.OVERWORLD));
             if (lobbyLvl != null) {
-                event.setDimensionTransition(new DimensionTransition(
+                event.setTeleportTransition(new TeleportTransition(
                         lobbyLvl, Vec3.atCenterOf(mgr.getLobbySpawnPos()), Vec3.ZERO,
-                        ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), 0f, DimensionTransition.DO_NOTHING
+                        ServerConfig.LOBBY_PLAYER_YAW.get().floatValue(), 0f, TeleportTransition.DO_NOTHING
                 ));
             }
         }
     }
 
-    public static ResourceLocation rl(String id) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, id);
+    public static Identifier id(String id) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, id);
+    }
+
+    public PurgeManager getPurgeManager() {
+        return Objects.requireNonNull(purgeManager);
     }
 }
 

@@ -4,7 +4,6 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
@@ -42,7 +41,6 @@ public record ConstructionType(Optional<PrebuiltStructure> prebuilt, Optional<Pr
         );
     }
 
-    @NotNull
     private static Either<PrebuiltStructure, Either<Pregen, Either<JigsawParams, SingleStructure>>> split(ConstructionType type) {
         if (type.prebuilt.isPresent()) return Either.left(type.prebuilt.get());
         if (type.pregen.isPresent()) return Either.right(Either.left(type.pregen.get()));

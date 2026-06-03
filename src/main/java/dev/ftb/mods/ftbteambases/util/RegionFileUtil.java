@@ -7,7 +7,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -54,7 +53,6 @@ public class RegionFileUtil {
         }
     }
 
-    @NotNull
     public static Path getPregenPath(String templateId, MinecraftServer server, @Nullable String subDir) {
         Path base = server.getServerDirectory().resolve(PREGEN_PATH).resolve(templateId);
         return subDir == null ? base : base.resolve(subDir);
@@ -69,11 +67,10 @@ public class RegionFileUtil {
         } else if (Level.END.equals(levelKey)) {
             return levelDataDir.resolve("DIM1");
         } else {
-            return levelDataDir.resolve("dimensions").resolve(levelKey.location().getNamespace()).resolve(levelKey.location().getPath());
+            return levelDataDir.resolve("dimensions").resolve(levelKey.identifier().getNamespace()).resolve(levelKey.identifier().getPath());
         }
     }
 
-    @NotNull
     public static Path getPathForDimension(MinecraftServer server, ResourceKey<Level> levelKey, String subDirectory) {
         return getPathForDimension(server, levelKey).resolve(subDirectory);
     }
@@ -85,15 +82,14 @@ public class RegionFileUtil {
 
         Path destDir = server.getWorldPath(LevelResource.ROOT)
                 .resolve("dimensions")
-                .resolve(dimensionKey.location().getNamespace())
-                .resolve(dimensionKey.location().getPath());
+                .resolve(dimensionKey.identifier().getNamespace())
+                .resolve(dimensionKey.identifier().getPath());
 
         try {
             FileUtils.copyDirectory(pregenDir.toFile(), destDir.toFile());
             FTBTeamBases.LOGGER.info("Copied pregen MCA files from {} to {}", pregenDir, destDir);
         } catch (IOException e) {
             FTBTeamBases.LOGGER.error("Failed to copy pregen MCA files from {} to {}: {}", pregenDir, destDir, e.getMessage());
-            e.printStackTrace();
         }
     }
 }

@@ -1,7 +1,7 @@
 package dev.ftb.mods.ftbteambases.net;
 
+import dev.ftb.mods.ftblibrary.client.util.ClientUtils;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
-import dev.ftb.mods.ftbteambases.client.FTBTeamBasesClient;
 import dev.ftb.mods.ftbteambases.client.VoidTeamLevelData;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -13,11 +13,11 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 public enum VoidTeamDimensionMessage implements CustomPacketPayload {
     INSTANCE;
 
-    public static final Type<VoidTeamDimensionMessage> TYPE = new Type<>(FTBTeamBases.rl("void_team_dimension"));
+    public static final Type<VoidTeamDimensionMessage> TYPE = new Type<>(FTBTeamBases.id("void_team_dimension"));
     public static final StreamCodec<FriendlyByteBuf, VoidTeamDimensionMessage> STREAM_CODEC = StreamCodec.unit(VoidTeamDimensionMessage.INSTANCE);
 
     public static void handle(VoidTeamDimensionMessage ignored, IPayloadContext ignoredContext) {
-        if (FTBTeamBasesClient.clientLevel().getLevelData() instanceof VoidTeamLevelData vld) {
+        if (ClientUtils.getClientLevel().getLevelData() instanceof VoidTeamLevelData vld) {
             vld.ftb$setVoidTeamDimension();
         }
     }

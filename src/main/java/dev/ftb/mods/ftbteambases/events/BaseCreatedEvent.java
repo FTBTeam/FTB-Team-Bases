@@ -1,13 +1,33 @@
 package dev.ftb.mods.ftbteambases.events;
 
-import dev.architectury.event.Event;
-import dev.architectury.event.EventFactory;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
 import dev.ftb.mods.ftbteams.api.Team;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.Event;
+import org.jspecify.annotations.Nullable;
 
-public interface BaseCreatedEvent {
-    Event<BaseCreatedEvent> CREATED = EventFactory.createLoop();
+public class BaseCreatedEvent extends Event {
+    private final BaseInstanceManager manager;
+    @Nullable
+    private final ServerPlayer player;
+    private final Team partyTeam;
 
-    void created(BaseInstanceManager manager, ServerPlayer player, Team partyTeam);
+    public BaseCreatedEvent(BaseInstanceManager manager, @Nullable ServerPlayer player, Team partyTeam) {
+        this.manager = manager;
+        this.player = player;
+        this.partyTeam = partyTeam;
+    }
+
+    public BaseInstanceManager getManager() {
+        return manager;
+    }
+
+    @Nullable
+    public ServerPlayer getPlayer() {
+        return player;
+    }
+
+    public Team getPartyTeam() {
+        return partyTeam;
+    }
 }

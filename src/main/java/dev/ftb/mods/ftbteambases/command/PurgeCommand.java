@@ -4,9 +4,9 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.data.bases.ArchivedBaseDetails;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
-import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -20,10 +20,10 @@ import static net.minecraft.commands.Commands.literal;
 public class PurgeCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("purge")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .then(literal("id")
                         .then(argument("id", StringArgumentType.greedyString())
-                                .suggests((ctx, builder) -> CommandUtils.suggestArchivedBases(builder))
+                                .suggests((ctx, builder) -> CommandUtils.suggestArchivedBases(ctx.getSource().getServer(), builder))
                                 .executes(ctx -> addById(ctx.getSource(), StringArgumentType.getString(ctx, "id")))
                         )
                 )
@@ -68,7 +68,7 @@ public class PurgeCommand {
     }
 
     private static int cancelAll(CommandSourceStack source) {
-        if (PurgeManager.INSTANCE.clearPending()) {
+        if (FTBTeamBases.getInstance().getPurgeManager().clearPending()) {
             source.sendSuccess(() -> Component.literal("All pending purges cancelled"), false);
             return 1;
         } else {
@@ -78,7 +78,7 @@ public class PurgeCommand {
     }
 
     private static int cancelPurge(CommandSourceStack source, String id) throws CommandSyntaxException {
-        if (PurgeManager.INSTANCE.removePending(id)) {
+        if (FTBTeamBases.getInstance().getPurgeManager().removePending(id)) {
             source.sendSuccess(() -> Component.literal("Cancelled purge for archived base: " + id), false);
             return 1;
         } else {
@@ -91,7 +91,7 @@ public class PurgeCommand {
         if (details.isEmpty()) {
             return 0;
         } else {
-            if (PurgeManager.INSTANCE.addPending(details)) {
+            if (FTBTeamBases.getInstance().getPurgeManager().addPending(details)) {
                 source.sendSuccess(() -> Component.literal("Scheduled " + details.size() + " base(s) for permanent purge on next server restart"), false);
                 source.sendSuccess(() -> Component.literal("Use '/ftbteambases purge cancel_all' to cancel all pending purges"), false);
                 return 1;

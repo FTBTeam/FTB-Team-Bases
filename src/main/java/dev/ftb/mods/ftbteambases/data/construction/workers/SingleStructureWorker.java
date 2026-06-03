@@ -1,12 +1,12 @@
 package dev.ftb.mods.ftbteambases.data.construction.workers;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.ftb.mods.ftblibrary.util.BooleanConsumer;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.SingleStructure;
 import dev.ftb.mods.ftbteambases.util.DimensionUtils;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -35,7 +35,7 @@ public class SingleStructureWorker extends AbstractStructureWorker {
     public void startConstruction(BooleanConsumer onCompleted) {
         super.startConstruction(onCompleted);
 
-        ServerLevel serverLevel = getOrCreateLevel(player.getServer());
+        ServerLevel serverLevel = getOrCreateLevel(player.level().getServer());
 
         StructureTemplate template = serverLevel.getStructureManager().getOrCreate(singleStructure.structureLocation());
         StructurePlaceSettings placeSettings = DimensionUtils.makePlacementSettings(template, singleStructure.includeEntities());
@@ -43,12 +43,12 @@ public class SingleStructureWorker extends AbstractStructureWorker {
         BlockPos origin = getPlacementOrigin(serverLevel, getSpawnXZ(), singleStructure.yPos());
         BlockPos templatePos = origin.offset(-(template.getSize().getX() / 2), 0, -(template.getSize().getZ() / 2));
 
-        ChunkPos cp = new ChunkPos(templatePos);
-        if (serverLevel.getChunkSource().getChunk(cp.x, cp.z, ChunkStatus.FULL, true) == null) {
-            throw new FTBTeamBasesException("Single Structure Worker: can't load chunk at " + getDimension().location() + " / " + cp);
+        ChunkPos cp = ChunkPos.containing(templatePos);
+        if (serverLevel.getChunkSource().getChunk(cp.x(), cp.z(), ChunkStatus.FULL, true) == null) {
+            throw new FTBTeamBasesException("Single Structure Worker: can't load chunk at " + getDimension().identifier() + " / " + cp);
         }
 
-        template.placeInWorld(serverLevel, templatePos, templatePos, placeSettings, serverLevel.random, Block.UPDATE_ALL);
+        template.placeInWorld(serverLevel, templatePos, templatePos, placeSettings, serverLevel.getRandom(), Block.UPDATE_ALL);
 
         postProcess(template, templatePos, placeSettings, serverLevel);
     }
@@ -60,14 +60,15 @@ public class SingleStructureWorker extends AbstractStructureWorker {
 
         for (StructureTemplate.StructureBlockInfo info : template.filterBlocks(BlockPos.ZERO, placeSettings, Blocks.JIGSAW)) {
             if (info.nbt() != null) {
-                String stateName = info.nbt().getString("final_state");
-                try {
-                    BlockState state = BlockStateParser.parseForBlock(serverLevel.holderLookup(Registries.BLOCK), stateName, true).blockState();
-                    serverLevel.setBlock(info.pos().offset(origin), state, Block.UPDATE_ALL);
-                } catch (CommandSyntaxException e) {
-                    FTBTeamBases.LOGGER.error("Error while parsing blockstate {} in jigsaw block @ {} : {}", stateName, info.pos(), e.getMessage());
-                    serverLevel.setBlock(info.pos(), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-                }
+                info.nbt().getString("final_state").ifPresent(stateName -> {
+                    try {
+                        BlockState state = BlockStateParser.parseForBlock(serverLevel.holderLookup(Registries.BLOCK), stateName, true).blockState();
+                        serverLevel.setBlock(info.pos().offset(origin), state, Block.UPDATE_ALL);
+                    } catch (CommandSyntaxException e) {
+                        FTBTeamBases.LOGGER.error("Error while parsing blockstate {} in jigsaw block @ {} : {}", stateName, info.pos(), e.getMessage());
+                        serverLevel.setBlock(info.pos(), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    }
+                });
             }
         }
     }
@@ -77,11 +78,4 @@ public class SingleStructureWorker extends AbstractStructureWorker {
         onCompleted.accept(true);
     }
 
-//    private BlockPos originAtYpos(ServerLevel level, XZ xz) {
-//        int x = xz.x();
-//        int z = xz.z();
-//        return singleStructure.yPos()
-//                .map(y -> new BlockPos(x, y, z))
-//                .orElse(new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z));
-//    }
 }

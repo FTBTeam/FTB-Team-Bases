@@ -11,7 +11,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.level.LevelHeightAccessor;
@@ -23,7 +23,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-import net.minecraft.world.level.levelgen.*;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 
@@ -40,18 +43,18 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
     public static final MapCodec<VoidChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             BiomeSource.CODEC.fieldOf("biome_source").forGetter(ChunkGenerator::getBiomeSource),
             NoiseGeneratorSettings.CODEC.fieldOf("settings").forGetter(NoiseBasedChunkGenerator::generatorSettings),
-            ResourceLocation.CODEC.optionalFieldOf("prebuilt_structure_id", FTBTeamBases.NO_TEMPLATE_ID).forGetter(VoidChunkGenerator::getBaseDefinitionId)
+            Identifier.CODEC.optionalFieldOf("prebuilt_structure_id", FTBTeamBases.NO_TEMPLATE_ID).forGetter(VoidChunkGenerator::getBaseDefinitionId)
     ).apply(instance, instance.stable(VoidChunkGenerator::new)));
 
-    private final ResourceLocation baseDefinitionId;
+    private final Identifier baseDefinitionId;
 
-    public static VoidChunkGenerator create(MinecraftServer server, RegistryAccess registryAccess, ResourceLocation prebuiltStructureId) {
+    public static VoidChunkGenerator create(MinecraftServer server, RegistryAccess registryAccess, Identifier prebuiltStructureId) {
         Holder<MultiNoiseBiomeSourceParameterList> preset = registryAccess.lookup(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST).orElseThrow()
                 .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD);
         MultiNoiseBiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(preset);
 
-        Holder<NoiseGeneratorSettings> settings = registryAccess.registryOrThrow(Registries.NOISE_SETTINGS)
-                .getHolderOrThrow(NoiseGeneratorSettings.OVERWORLD);
+        Holder<NoiseGeneratorSettings> settings = registryAccess.lookupOrThrow(Registries.NOISE_SETTINGS)
+                .getOrThrow(NoiseGeneratorSettings.OVERWORLD);
         VoidChunkGenerator gen = new VoidChunkGenerator(biomeSource, settings, prebuiltStructureId);
 
         if (!ServerConfig.FEATURE_GEN.get().shouldGenerate(true)) {
@@ -62,7 +65,7 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
         return gen;
     }
 
-    private VoidChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings, ResourceLocation baseDefinitionId) {
+    private VoidChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings, Identifier baseDefinitionId) {
         super(biomeSource, settings);
 
         this.baseDefinitionId = baseDefinitionId;
@@ -85,7 +88,7 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
     }
 
     @Override
-    public void applyCarvers(WorldGenRegion level, long seed, RandomState random, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk, GenerationStep.Carving step) {
+    public void applyCarvers(WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk) {
         // no-op
     }
 
@@ -106,16 +109,16 @@ public class VoidChunkGenerator extends NoiseBasedChunkGenerator implements Base
 
     @Override
     public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor level, RandomState random) {
-        return level.getMinBuildHeight();
+        return level.getMinY();
     }
 
     @Override
     public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor height, RandomState random) {
-        return new NoiseColumn(height.getMinBuildHeight(), new BlockState[0]);
+        return new NoiseColumn(height.getMinY(), new BlockState[0]);
     }
 
     @Override
-    public ResourceLocation getBaseDefinitionId() {
+    public Identifier getBaseDefinitionId() {
         return baseDefinitionId;
     }
 

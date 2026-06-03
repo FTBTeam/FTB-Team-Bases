@@ -17,7 +17,7 @@ import static net.minecraft.commands.Commands.literal;
 public class ListCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return literal("list")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .executes(ctx -> doList(ctx.getSource()));
     }
 

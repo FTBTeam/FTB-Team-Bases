@@ -9,7 +9,7 @@ import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class BaseDefinitionArgument implements ArgumentType<BaseDefinition> {
     private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(
@@ -30,13 +30,13 @@ public class BaseDefinitionArgument implements ArgumentType<BaseDefinition> {
     public BaseDefinition parse(StringReader reader) throws CommandSyntaxException {
         int i = reader.getCursor();
 
-        while (reader.canRead() && ResourceLocation.isAllowedInResourceLocation(reader.peek())) {
+        while (reader.canRead() && Identifier.isAllowedInIdentifier(reader.peek())) {
             reader.skip();
         }
 
         String s = reader.getString().substring(i, reader.getCursor());
 
-        return BaseDefinitionManager.getServerInstance().getBaseDefinition(ResourceLocation.parse(s))
+        return BaseDefinitionManager.getServerInstance().getBaseDefinition(Identifier.parse(s))
                 .orElseThrow(() -> NOT_FOUND.createWithContext(reader, s));
     }
 

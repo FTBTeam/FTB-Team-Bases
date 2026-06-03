@@ -15,13 +15,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Vec3i;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.TicketType;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
@@ -37,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class DimensionUtils {
@@ -47,10 +47,10 @@ public class DimensionUtils {
         StructurePlaceSettings placeSettings = makePlacementSettings(template);
 
         for (var info : template.filterBlocks(BlockPos.ZERO, placeSettings, Blocks.STRUCTURE_BLOCK)) {
-            if (info.nbt() != null && StructureMode.valueOf(info.nbt().getString("mode")) == StructureMode.DATA) {
+            if (info.nbt() != null && StructureMode.valueOf(info.nbt().getStringOr("mode", "")) == StructureMode.DATA) {
                 FTBTeamBases.LOGGER.info("Found data block at [{}] with data [{}]", info.pos(), info.nbt().getString("metadata"));
 
-                if (info.nbt().getString("metadata").equalsIgnoreCase("spawn_point")) {
+                if (info.nbt().getStringOr("metadata", "").equalsIgnoreCase("spawn_point")) {
                     return Optional.of(info.pos());
                 }
             }
@@ -75,10 +75,10 @@ public class DimensionUtils {
     }
 
     public static boolean isTeamDimension(Level level) {
-        return level.dimension().location().getNamespace().equals(FTBTeamBases.MOD_ID);
+        return level.dimension().identifier().getNamespace().equals(FTBTeamBases.MOD_ID);
     }
 
-    public static boolean isPrivateTeamDimension(ResourceLocation id) {
+    public static boolean isPrivateTeamDimension(Identifier id) {
         return id.getNamespace().equals(FTBTeamBases.MOD_ID) && id.getPath().startsWith(PRIVATE_DIM_PREFIX);
     }
 
@@ -90,7 +90,7 @@ public class DimensionUtils {
         return chunkGenerator instanceof VoidChunkGenerator;
     }
 
-    public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, ResourceLocation baseTemplateId) {
+    public static Stream<Holder<StructureSet>> possibleStructures(HolderLookup<StructureSet> holderLookup, Identifier baseTemplateId) {
         return BaseDefinitionManager.getServerInstance().getBaseDefinition(baseTemplateId)
                 .map(baseDef -> getHolderStream(holderLookup, baseDef))
                 .orElse(Stream.empty());
@@ -114,11 +114,12 @@ public class DimensionUtils {
     }
 
     public static boolean teleport(ServerPlayer player, ResourceKey<Level> key, @Nullable BlockPos destPos, float yRot) {
-        ServerLevel level = player.server.getLevel(key);
+        MinecraftServer server = player.level().getServer();
+        ServerLevel level = server.getLevel(key);
 
         if (level != null) {
             if (key.equals(StartupConfig.lobbyDimension().orElse(Level.OVERWORLD))) {
-                BlockPos lobbySpawnPos = BaseInstanceManager.get(player.server).getLobbySpawnPos();
+                BlockPos lobbySpawnPos = BaseInstanceManager.get(server).getLobbySpawnPos();
                 BlockPos pos = Objects.requireNonNullElse(destPos, lobbySpawnPos);
 
                 doTeleport(player, level, pos, yRot);
@@ -126,11 +127,11 @@ public class DimensionUtils {
                 Vec3 vec;
                 if (destPos == null) {
                     vec = new Vec3(0.5D, 1.1D, 0.5D);
-                    BlockPos respawnPosition = player.getRespawnPosition();
-                    if (player.getRespawnDimension().equals(key) && respawnPosition != null) {
+                    BlockPos respawnPosition = MiscUtil.getRespawnPosition(player);
+                    if (MiscUtil.getRespawnDimension(player).equals(key) && respawnPosition != null) {
                         vec = vec.add(new Vec3(respawnPosition.getX(), respawnPosition.getY(), respawnPosition.getZ()));
                     } else {
-                        BlockPos levelSharedSpawn = BaseInstanceManager.get(player.server).getBaseForPlayer(player)
+                        BlockPos levelSharedSpawn = BaseInstanceManager.get(server).getBaseForPlayer(player)
                                 .map(LiveBaseDetails::spawnPos).orElse(BlockPos.ZERO);
                         vec = vec.add(new Vec3(levelSharedSpawn.getX(), levelSharedSpawn.getY(), levelSharedSpawn.getZ()));
                     }
@@ -142,22 +143,23 @@ public class DimensionUtils {
             }
             return true;
         } else {
-            FTBTeamBases.LOGGER.error("Failed to teleport {} to {} (bad level key)", player.getScoreboardName(), key.location());
+            FTBTeamBases.LOGGER.error("Failed to teleport {} to {} (bad level key)", player.getScoreboardName(), key.identifier());
             return false;
         }
     }
 
     private static void doTeleport(ServerPlayer player, ServerLevel level, BlockPos pos, float yRot) {
-        player.getServer().tell(new TickTask(player.getServer().getTickCount(), () -> {
-            ChunkPos chunkpos = new ChunkPos(pos);
-            level.getChunkSource().addRegionTicket(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
+        player.level().getServer().schedule(new TickTask(player.level().getServer().getTickCount(), () -> {
+            // TODO doesn't seem to necessary in 26.1 - verify this
+//            ChunkPos chunkpos = ChunkPos.containing(pos);
+//            level.getChunkSource().addTicketWithRadius(TicketType.POST_TELEPORT, chunkpos, 1, player.getId());
             player.stopRiding();
             if (player.isSleeping()) {
                 player.stopSleepInBed(true, true);
             }
-            player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, yRot, player.getXRot());
+            player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, Set.of(), yRot, player.getXRot(), true);
 
-            FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().getName(), pos, level.dimension().location());
+            FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().name(), pos, level.dimension().identifier());
         }));
     }
 }

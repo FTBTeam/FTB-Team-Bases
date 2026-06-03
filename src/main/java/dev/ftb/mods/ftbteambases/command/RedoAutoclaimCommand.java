@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 public class RedoAutoclaimCommand {
     public static LiteralArgumentBuilder<CommandSourceStack> register() {
         return Commands.literal("redo_autoclaim")
-                .requires(ctx -> ctx.hasPermission(2))
+                .requires(CommandUtils.requiresGameMaster())
                 .executes(ctx -> {
                     BaseInstanceManager.get(ctx.getSource().getServer()).setAutoclaimNeeded(true);
                     ctx.getSource().sendSuccess(() -> Component.literal("Lobby autoclaiming will be redone on next lobby level load"), false);
