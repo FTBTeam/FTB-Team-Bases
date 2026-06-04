@@ -69,8 +69,8 @@ public class LobbyPregen {
 
     private static boolean okToCopy(Path srcDir, Path dstDir) {
         // src dir must exist, and dst dir must either not exist or be empty
-        if (!Files.isDirectory(srcDir) || !Files.isDirectory(dstDir)) {
-            return false;
+        if (Files.isDirectory(srcDir) && !Files.isDirectory(dstDir)) {
+            return true;
         }
         try (Stream<Path> entries = Files.list(dstDir)) {
             return entries.findFirst().isEmpty();
