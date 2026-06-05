@@ -69,7 +69,10 @@ public class LobbyPregen {
 
     private static boolean okToCopy(Path srcDir, Path dstDir) {
         // src dir must exist, and dst dir must either not exist or be empty
-        if (Files.isDirectory(srcDir) && !Files.isDirectory(dstDir)) {
+        if (!Files.isDirectory(srcDir)) {
+            return false;
+        }
+        if (!Files.isDirectory(dstDir)) {
             return true;
         }
         try (Stream<Path> entries = Files.list(dstDir)) {
@@ -83,10 +86,10 @@ public class LobbyPregen {
     private static boolean copyDirectory(Path srcDir, Path destDir) {
         try {
             FileUtils.copyDirectory(srcDir.toFile(), destDir.toFile());
-            FTBTeamBases.LOGGER.info("Copied initial pregen MCA files from {} to {}", srcDir, destDir);
+            FTBTeamBases.LOGGER.info("Copied files from {} to {}", srcDir, destDir);
             return true;
         } catch (IOException e) {
-            FTBTeamBases.LOGGER.error("Failed to copy initial MCA files from {} to {}: {}", srcDir, destDir, e.getMessage());
+            FTBTeamBases.LOGGER.error("Failed to copy files from {} to {}: {}", srcDir, destDir, e.getMessage());
             return false;
         }
     }
