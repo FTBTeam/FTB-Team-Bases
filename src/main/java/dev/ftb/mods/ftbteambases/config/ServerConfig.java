@@ -38,6 +38,10 @@ public interface ServerConfig {
             .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
     BooleanValue ALLOW_LOBBY_SPECTATORS = GENERAL.addBoolean("allow_lobby_spectators", false)
             .comment("If true, allow spectator-mode players to use the lobby portal");
+    StringValue BASE_HOME_NAME = GENERAL.addString("base_home_name", "home")
+            .comment("If non-empty, and FTB Essentials is present, automatically set an FTB Essentials home",
+                    "for players when a they create a base or join an existing team, and delete it when they",
+                    "leave the team, or when the team is disbanded");
 
     SNBTConfig LOBBY = CONFIG.addGroup("lobby");
     StringValue LOBBY_STRUCTURE_LOCATION = LOBBY.addString("lobby_structure_location", FTBTeamBases.rl("lobby").toString())

@@ -3,8 +3,10 @@ package dev.ftb.mods.ftbteambases.data.construction;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.FTBTeamBasesException;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
+import dev.ftb.mods.ftbteambases.data.bases.LiveBaseDetails;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.events.BaseCreatedEvent;
+import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsIntegration;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.data.PlayerTeam;
@@ -54,11 +56,13 @@ public class BaseConstructionAgent {
                 if (team instanceof PlayerTeam playerTeam) {
                     try {
                         Team party = playerTeam.createParty("", null);
-                        BaseInstanceManager.get(server).addNewBase(party.getId(), constructionWorker.makeLiveBaseDetails(destLevel, baseDefinition));
+                        LiveBaseDetails base = constructionWorker.makeLiveBaseDetails(destLevel, baseDefinition);
+                        BaseInstanceManager.get(server).addNewBase(party.getId(), base);
                         BaseInstanceManager.get(server).forceSave(server);
                         if (player != null) {
                             // teleport player to newly-created base
                             BaseInstanceManager.get(server).teleportToBaseSpawn(player, party.getId());
+                            FTBEssentialsIntegration.addFTBEssentialsHome(player, base.dimension(), base.spawnPos());
                         }
                         FTBTeamBases.LOGGER.info("team base created for player id {}, party id = {}, dim id = {}, type = {}",
                                 playerId, party.getId(), destLevel.dimension().location(), baseDefinition.id());

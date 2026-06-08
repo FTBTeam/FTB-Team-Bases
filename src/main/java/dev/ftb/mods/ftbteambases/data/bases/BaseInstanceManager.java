@@ -12,6 +12,8 @@ import dev.ftb.mods.ftbteambases.config.StartupConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.events.BaseArchivedEvent;
+import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsHomes;
+import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsIntegration;
 import dev.ftb.mods.ftbteambases.util.*;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import dev.ftb.mods.ftbteams.api.Team;
@@ -329,6 +331,8 @@ public class BaseInstanceManager extends SavedData {
             }
             teleportToLobby(player);
             FTBTeamBases.LOGGER.debug("player {} left team, sending back to lobby", playerId);
+
+            FTBEssentialsIntegration.deleteFTBEssentialsHome(player);
         } else {
             orphanedPlayers.add(playerId);
             setDirty();
