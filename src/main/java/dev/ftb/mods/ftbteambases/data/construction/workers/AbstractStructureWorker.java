@@ -77,10 +77,11 @@ public abstract class AbstractStructureWorker implements ConstructionWorker {
     protected final BlockPos getPlacementOrigin(ServerLevel level, XZ xz, Optional<Integer> yPos) {
         int x = xz.x();
         int z = xz.z();
-        if (yPos.isPresent()) {
-            return new BlockPos(x, yPos.get(), z);
-        }
-        level.getChunk(x >> 4, z >> 4);
-        return new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z);
+        return yPos
+                .map(y -> new BlockPos(x, y, z))
+                .orElseGet(() -> {
+                    level.getChunk(x >> 4, z >> 4);
+                    return new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z);
+                });
     }
 }
