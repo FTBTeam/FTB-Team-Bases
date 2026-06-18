@@ -2,6 +2,7 @@ package dev.ftb.mods.ftbteambases.config;
 
 import dev.ftb.mods.ftblibrary.snbt.config.IntArrayValue;
 import dev.ftb.mods.ftblibrary.snbt.config.SNBTConfig;
+import dev.ftb.mods.ftblibrary.snbt.config.StringListValue;
 import dev.ftb.mods.ftblibrary.snbt.config.StringValue;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import net.minecraft.ResourceLocationException;
@@ -11,8 +12,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Startup configs are loaded immediately from the mod constructor.
@@ -40,6 +44,11 @@ public interface StartupConfig {
             .comment("Position at which new players spawn.",
                     "Only used if the lobby structure comes from a pregenerated region!");
 
+
+    StringListValue PREGEN_INITIAL_SUBDIRS = CONFIG.addStringList("pregen_initial_subdirs", List.of(
+            "region", "entities", "poi", "DIM1", "DIM-1"
+    )).comment("Subdirectories to be copied from the 'ftbteambases/pregen_initial' directory");
+
     static Optional<ResourceKey<Level>> lobbyDimension() {
         try {
             return Optional.of(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(LOBBY_DIMENSION.get())));
@@ -61,5 +70,11 @@ public interface StartupConfig {
             FTBTeamBases.LOGGER.error("invalid lobby spawn pos! expected 3 integers, got {}", pos.length);
             return Optional.empty();
         }
+    }
+
+    static List<Path> pregenInitialSubdirs() {
+        return PREGEN_INITIAL_SUBDIRS.get().stream()
+                .map(Path::of)
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 }

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [21.1.14]
+
+### Added
+* If FTB Essentials is loaded and the `base_home_name` server config setting is non-empty, add a FTB Essentials `/home` for the player when they create a base or join a team with a base
+
+### Changed
+* Initial subdirs to copy from the `pregen_initial` are now defined in startup config instead of hardcoded
+  * See `pregen_initial_subdirs` setting
+
+### Fixed
+* Ensure chunks are properly loaded when running surface height lookups to avoid bad Y-level placement of bases
+
 ## [21.1.13]
 
 ### Fixed

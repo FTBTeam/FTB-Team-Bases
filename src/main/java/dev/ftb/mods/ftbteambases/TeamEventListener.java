@@ -2,6 +2,7 @@ package dev.ftb.mods.ftbteambases;
 
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.data.bases.BaseInstanceManager;
+import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsIntegration;
 import dev.ftb.mods.ftbteambases.util.MiscUtil;
 import dev.ftb.mods.ftbteams.api.Team;
 import dev.ftb.mods.ftbteams.api.event.PlayerJoinedPartyTeamEvent;
@@ -31,9 +32,16 @@ public class TeamEventListener {
             foodData.setSaturation(5.0f);
         }
 
+        BaseInstanceManager mgr = BaseInstanceManager.get(serverPlayer.getServer());
+
         // note: this is a no-op for the player who creates the team initially (base doesn't exist yet)
         //   but is necessary for any players who subsequently join the team
-        BaseInstanceManager.get(serverPlayer.getServer()).teleportToBaseSpawn(serverPlayer, team.getTeamId());
+        mgr.teleportToBaseSpawn(serverPlayer, team.getTeamId());
+
+        // similarly for this: the creating player's home was set when they created the team and the base
+        mgr.getBaseForPlayer(serverPlayer).ifPresent(base ->
+                FTBEssentialsIntegration.addFTBEssentialsHome(serverPlayer, base.dimension(), base.spawnPos())
+        );
     }
 
     static void teamPlayerLeftParty(PlayerLeftPartyTeamEvent event) {
@@ -47,6 +55,7 @@ public class TeamEventListener {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server != null) {
             BaseInstanceManager.get(server).deleteAndArchive(server, event.getTeam());
+            event.getTeam().getOnlineMembers().forEach(FTBEssentialsIntegration::deleteFTBEssentialsHome);
         }
     }
 }

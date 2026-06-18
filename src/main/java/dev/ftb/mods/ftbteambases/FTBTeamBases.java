@@ -11,6 +11,7 @@ import dev.ftb.mods.ftbteambases.data.construction.RelocatorTracker;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinitionManager;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.integration.FTBChunksIntegration;
+import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsIntegration;
 import dev.ftb.mods.ftbteambases.net.SyncBaseTemplatesMessage;
 import dev.ftb.mods.ftbteambases.net.VoidTeamDimensionMessage;
 import dev.ftb.mods.ftbteambases.registry.ModArgumentTypes;
@@ -100,6 +101,8 @@ public class FTBTeamBases {
         TeamEvent.PLAYER_JOINED_PARTY.register(TeamEventListener::teamPlayerJoin);
         TeamEvent.PLAYER_LEFT_PARTY.register(TeamEventListener::teamPlayerLeftParty);
         TeamEvent.DELETED.register(TeamEventListener::teamDeleted);
+
+        FTBEssentialsIntegration.init();
     }
 
     private static void registerReloadListeners(AddReloadListenerEvent event) {

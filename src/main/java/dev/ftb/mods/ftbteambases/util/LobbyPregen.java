@@ -13,12 +13,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class LobbyPregen {
     private static final Path PREGEN_INITIAL_PATH = Path.of(FTBTeamBases.MOD_ID, "pregen_initial");
-
-    private static final List<Path> INITIAL_SUBDIRS = Stream.of("region", "entities", "poi", "DIM1", "DIM-1").map(Path::of).toList();
 
     public static boolean maybePregenLobby(MinecraftServer server) {
         Path initialPath = server.getServerDirectory().resolve(PREGEN_INITIAL_PATH);
@@ -32,17 +31,15 @@ public class LobbyPregen {
         // This is a brand-new world - copy over any pregen MCA files
         boolean copiedAnything = false;
 
-        // Copy lobby/overworld pregen files (region, entities, poi, DIM1, DIM-1)
-        List<Path> lobbySubDirs = new ArrayList<>(INITIAL_SUBDIRS);
+        // Copy lobby/overworld pregen files (region, entities, poi, DIM1, DIM-1) - defined in startup config
+        List<Path> lobbySubDirs = StartupConfig.pregenInitialSubdirs();
         addLobbyExtras(lobbySubDirs);
 
         for (Path subDir : lobbySubDirs) {
             Path srcDir = initialPath.resolve(subDir);
             Path destDir = worldPath.resolve(subDir);
-            if (Files.isDirectory(srcDir) && !Files.isDirectory(destDir)) {
-                if (copyDirectory(srcDir, destDir)) {
-                    copiedAnything = true;
-                }
+            if (okToCopy(srcDir, destDir) && copyDirectory(srcDir, destDir)) {
+                copiedAnything = true;
             }
         }
 
@@ -52,11 +49,9 @@ public class LobbyPregen {
             Path srcDir = initialPath.resolve(dimPath);
             Path destDir = worldPath.resolve(dimPath);
 
-            if (Files.isDirectory(srcDir) && !Files.isDirectory(destDir.resolve("region"))) {
-                if (copyDirectory(srcDir, destDir)) {
-                    copiedAnything = true;
-                    FTBTeamBases.LOGGER.info("Copied additional pregen dimension: {}", rl);
-                }
+            if (okToCopy(srcDir, destDir.resolve("region")) && copyDirectory(srcDir, destDir)) {
+                copiedAnything = true;
+                FTBTeamBases.LOGGER.info("Copied additional pregen dimension: {}", rl);
             }
         }
 
@@ -72,13 +67,29 @@ public class LobbyPregen {
         return copiedAnything;
     }
 
+    private static boolean okToCopy(Path srcDir, Path dstDir) {
+        // src dir must exist, and dst dir must either not exist or be empty
+        if (!Files.isDirectory(srcDir)) {
+            return false;
+        }
+        if (!Files.isDirectory(dstDir)) {
+            return true;
+        }
+        try (Stream<Path> entries = Files.list(dstDir)) {
+            return entries.findFirst().isEmpty();
+        } catch (IOException e) {
+            FTBTeamBases.LOGGER.error("can't list directory {}: {}", dstDir, e.getMessage());
+            return false;
+        }
+    }
+
     private static boolean copyDirectory(Path srcDir, Path destDir) {
         try {
             FileUtils.copyDirectory(srcDir.toFile(), destDir.toFile());
-            FTBTeamBases.LOGGER.info("Copied initial pregen MCA files from {} to {}", srcDir, destDir);
+            FTBTeamBases.LOGGER.info("Copied files from {} to {}", srcDir, destDir);
             return true;
         } catch (IOException e) {
-            FTBTeamBases.LOGGER.error("Failed to copy initial MCA files from {} to {}: {}", srcDir, destDir, e.getMessage());
+            FTBTeamBases.LOGGER.error("Failed to copy files from {} to {}: {}", srcDir, destDir, e.getMessage());
             return false;
         }
     }
