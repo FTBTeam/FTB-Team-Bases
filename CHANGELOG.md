@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [21.1.12]
 
-### Added
+### Added+
 * Added an `absolute_spawn` position to bypass offet spawn locations
 
 ### Fixed

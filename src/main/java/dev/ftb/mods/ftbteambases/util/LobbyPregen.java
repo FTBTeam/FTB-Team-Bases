@@ -68,19 +68,8 @@ public class LobbyPregen {
     }
 
     private static boolean okToCopy(Path srcDir, Path dstDir) {
-        // src dir must exist, and dst dir must either not exist or be empty
-        if (!Files.isDirectory(srcDir)) {
-            return false;
-        }
-        if (!Files.isDirectory(dstDir)) {
-            return true;
-        }
-        try (Stream<Path> entries = Files.list(dstDir)) {
-            return entries.findFirst().isEmpty();
-        } catch (IOException e) {
-            FTBTeamBases.LOGGER.error("can't list directory {}: {}", dstDir, e.getMessage());
-            return false;
-        }
+        // src dir must exist
+        return Files.isDirectory(srcDir);
     }
 
     private static boolean copyDirectory(Path srcDir, Path destDir) {
