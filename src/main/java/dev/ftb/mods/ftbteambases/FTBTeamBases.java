@@ -117,6 +117,8 @@ public class FTBTeamBases {
 
     private static void serverBeforeStart(ServerAboutToStartEvent event) {
         PurgeManager.INSTANCE.init(event.getServer());
+
+        LobbyPregen.copyPregenFiles(event.getServer());
     }
 
     private static void serverStarting(ServerStartingEvent event) {
@@ -149,7 +151,7 @@ public class FTBTeamBases {
     private static void onLevelLoad(LevelEvent.Load event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             if (serverLevel.dimension() == OVERWORLD) {
-                if (LobbyPregen.maybePregenLobby(serverLevel.getServer())) {
+                if (LobbyPregen.finishLobbySetup(serverLevel.getServer())) {
                     FTBChunksIntegration.maybeAutoClaimLobby(serverLevel);
                     return;
                 }

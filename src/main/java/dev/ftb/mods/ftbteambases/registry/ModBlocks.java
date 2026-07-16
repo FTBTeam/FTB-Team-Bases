@@ -3,10 +3,12 @@ package dev.ftb.mods.ftbteambases.registry;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.block.BasesPortalBlock;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -26,5 +28,13 @@ public class ModBlocks {
     public static void init(IEventBus bus) {
         BLOCKS.register(bus);
         ITEMS.register(bus);
+
+        bus.addListener(ModBlocks::addToCreativeTab);
+    }
+
+    public static void addToCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey().equals(CreativeModeTabs.OP_BLOCKS)) {
+            event.accept(PORTAL_ITEM.toStack());
+        }
     }
 }
