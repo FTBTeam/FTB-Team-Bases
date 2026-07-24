@@ -15,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Vec3i;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.TickTask;
@@ -156,6 +157,8 @@ public class DimensionUtils {
                 player.stopSleepInBed(true, true);
             }
             player.teleportTo(level, pos.getX() + .5D, pos.getY() + .01D, pos.getZ() + .5D, yRot, player.getXRot());
+            player.setDeltaMovement(Vec3.ZERO);
+            player.connection.send(new ClientboundSetEntityMotionPacket(player));
 
             FTBTeamBases.LOGGER.debug("teleported {} to {} in {}", player.getGameProfile().getName(), pos, level.dimension().location());
         }));
