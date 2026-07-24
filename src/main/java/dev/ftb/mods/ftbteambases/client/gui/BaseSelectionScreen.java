@@ -41,6 +41,7 @@ public class BaseSelectionScreen extends Screen {
         startList = new StartList(minecraft, width, height - UPPER_HEIGHT - LOWER_HEIGHT, UPPER_HEIGHT);
         EditBox searchBox = new EditBox(font, width / 2 - 160 / 2, 40, 160, 20, Component.empty());
         searchBox.setResponder(startList::addChildren);
+        searchBox.setHint(Component.translatable("ftbteambases.gui.search_hint"));
 
         addRenderableWidget(Button.builder(Component.translatable("gui.back"), btn -> onClose())
                 .size(100, 20).pos(width / 2 - 130, height - 30).build());
