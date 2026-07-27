@@ -34,6 +34,17 @@ public interface ServerConfig {
             .comment("If true, then players going to the Nether via Nether Portal will be sent to a team-specific position in the Nether");
     IntValue BASE_SEPARATION = GENERAL.addInt("base_separation", 4, 0, 16)
             .comment("Base separation (in 512-block regions) when allocating regions for new bases in shared dimensions; the amount of clear space between the edges of two adjacent bases");
+    EnumValue<AllocationMode> ALLOCATION_MODE = GENERAL.addEnum("allocation_mode", AllocationMode.NAME_MAP)
+            .comment("How base slots are allocated in shared dimensions.",
+                    "SPIRAL: ring spiral outward around XZ=(0,0), spreading bases evenly in all four quadrants.",
+                    "ROWS: legacy behaviour, bases march east from (0,0) in rows.");
+    IntValue BASE_MIN_DIST_FROM_ORIGIN = GENERAL.addInt("base_min_dist_from_origin", 0, 0, Integer.MAX_VALUE)
+            .comment("SPIRAL allocation only: base slots whose footprint intersects a square of this many blocks",
+                    "around XZ=(0,0) are never allocated. Use this to reserve the lobby area in shared dimensions.");
+    BooleanValue AVOID_GENERATED_REGIONS = GENERAL.addBoolean("avoid_generated_regions", false)
+            .comment("SPIRAL allocation only: if true, base slots whose region files already exist on disk are",
+                    "skipped even for structure-based construction. Relocation-based construction (prebuilt or",
+                    "pregen region files) always skips slots with existing region files regardless of this setting.");
     IntValue HOME_CMD_PERMISSION_LEVEL = GENERAL.addInt("home_cmd_permission_level", 0, 0, 4)
             .comment("Permission level required to use the '/ftbteambases home' command; 0 = player, 2 = admin, 4 = server op");
     BooleanValue ALLOW_LOBBY_SPECTATORS = GENERAL.addBoolean("allow_lobby_spectators", false)
