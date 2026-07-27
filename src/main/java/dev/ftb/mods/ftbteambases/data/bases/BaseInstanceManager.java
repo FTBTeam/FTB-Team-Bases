@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.ftb.mods.ftblibrary.math.XZ;
 import dev.ftb.mods.ftbteambases.FTBTeamBases;
 import dev.ftb.mods.ftbteambases.command.CommandUtils;
+import dev.ftb.mods.ftbteambases.config.AllocationMode;
 import dev.ftb.mods.ftbteambases.config.ServerConfig;
 import dev.ftb.mods.ftbteambases.config.StartupConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
@@ -46,6 +47,7 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static dev.ftb.mods.ftbteambases.command.CommandUtils.DIM_MISSING;
 import static dev.ftb.mods.ftbteambases.command.CommandUtils.NOT_TEAM_NETHER;
@@ -156,14 +158,93 @@ public class BaseInstanceManager extends SavedData {
         if (baseDefinition.dimensionSettings().privateDimension()) {
             // simple case: only one base in the dimension
             return new RegionCoords(0, 0);
-        } else {
-            // find a place where no existing region files are present
-            RegionCoords genPos;
-            do {
-                genPos = getNextRegionCoords(dim, size);
-            } while (anyMCAFilesPresent(server, dim, genPos, size));
-            return genPos;
         }
+
+        if (ServerConfig.ALLOCATION_MODE.get() == AllocationMode.SPIRAL) {
+            boolean checkTerrain = baseDefinition.constructionType().prebuilt().isPresent()
+                    || baseDefinition.constructionType().pregen().isPresent()
+                    || ServerConfig.AVOID_GENERATED_REGIONS.get();
+            RegionCoords spiralPos = nextSpiralPos(server, dim, size, checkTerrain);
+            if (spiralPos != null) {
+                return spiralPos;
+            }
+        }
+
+        // legacy row allocation: find a place where no existing region files are present
+        RegionCoords genPos;
+        do {
+            genPos = getNextRegionCoords(dim, size);
+        } while (isSlotOccupiedByBase(dim, genPos, size) || anyMCAFilesPresent(server, dim, genPos, size));
+        return genPos;
+    }
+
+    @Nullable
+    private RegionCoords nextSpiralPos(MinecraftServer server, ResourceLocation dim, XZ size, boolean checkTerrain) {
+        int separation = ServerConfig.BASE_SEPARATION.get();
+        int strideX = Math.max(1, size.x() + separation);
+        int strideZ = Math.max(1, size.z() + separation);
+        int maxRing = MAX_REGION_X / Math.max(strideX, strideZ);
+        int minDist = ServerConfig.BASE_MIN_DIST_FROM_ORIGIN.get();
+
+        int index = 0;
+        RegionCoords pos;
+        while ((pos = spiralCell(index++, strideX, strideZ, maxRing)) != null) {
+            if (minDist > 0 && slotIntersectsOriginSquare(pos, size, minDist)) continue;
+            if (isSlotOccupiedByBase(dim, pos, size)) continue;
+            if (checkTerrain && anyMCAFilesPresent(server, dim, pos, size)) continue;
+            return pos;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static RegionCoords spiralCell(int index, int strideX, int strideZ, int maxRing) {
+        if (index == 0) {
+            return new RegionCoords(0, 0);
+        }
+        int remaining = index - 1;
+        for (int k = 1; k <= maxRing; k++) {
+            int ringSize = 8 * k;
+            if (remaining >= ringSize) {
+                remaining -= ringSize;
+                continue;
+            }
+            int edge = 2 * k + 1;
+            if (remaining < edge) {
+                return new RegionCoords(k * strideX, (-k + remaining) * strideZ);
+            }
+            remaining -= edge;
+            if (remaining < edge) {
+                return new RegionCoords(-k * strideX, (-k + remaining) * strideZ);
+            }
+            remaining -= edge;
+            int inner = edge - 2;
+            if (remaining < inner) {
+                return new RegionCoords((-k + 1 + remaining) * strideX, -k * strideZ);
+            }
+            remaining -= inner;
+            return new RegionCoords((-k + 1 + remaining) * strideX, k * strideZ);
+        }
+        return null;
+    }
+
+    private static boolean slotIntersectsOriginSquare(RegionCoords pos, XZ size, int minDist) {
+        int minBlockX = pos.x() * 512;
+        int minBlockZ = pos.z() * 512;
+        int maxBlockX = (pos.x() + Math.max(1, size.x())) * 512 - 1;
+        int maxBlockZ = (pos.z() + Math.max(1, size.z())) * 512 - 1;
+        return minBlockX <= minDist && maxBlockX >= -minDist && minBlockZ <= minDist && maxBlockZ >= -minDist;
+    }
+
+    private boolean isSlotOccupiedByBase(ResourceLocation dim, RegionCoords pos, XZ size) {
+        int minX = pos.x();
+        int minZ = pos.z();
+        int maxX = minX + Math.max(1, size.x()) - 1;
+        int maxZ = minZ + Math.max(1, size.z()) - 1;
+        return Stream.concat(
+                        liveBases.values().stream().filter(b -> b.dimension().location().equals(dim)).map(LiveBaseDetails::extents),
+                        archivedBases.values().stream().filter(b -> b.dimension().location().equals(dim)).map(ArchivedBaseDetails::extents))
+                .anyMatch(e -> e.start().x() <= maxX && e.end().x() >= minX && e.start().z() <= maxZ && e.end().z() >= minZ);
     }
 
     /**
