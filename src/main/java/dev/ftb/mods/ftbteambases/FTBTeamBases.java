@@ -20,8 +20,11 @@ import dev.ftb.mods.ftbteambases.registry.ModSounds;
 import dev.ftb.mods.ftbteambases.registry.ModWorldGen;
 import dev.ftb.mods.ftbteambases.util.*;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
+import dev.ftb.mods.ftbteams.api.PartyCreationValidator;
 import dev.ftb.mods.ftbteams.api.event.TeamEvent;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -122,7 +125,7 @@ public class FTBTeamBases {
     }
 
     private static void serverStarting(ServerStartingEvent event) {
-        FTBTeamsAPI.api().setPartyCreationFromAPIOnly(true);
+        FTBTeamsAPI.api().addPartyCreationValidator(player -> PartyCreationValidator.CreationResult.fail(Component.translatable("ftbteambases.message.party_creation", Component.literal("/ftbteams party leave").withStyle(ChatFormatting.YELLOW))));
     }
 
     private static void serverStarted(ServerStartedEvent event) {

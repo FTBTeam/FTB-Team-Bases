@@ -25,6 +25,7 @@
   "ftbteambases.message.stale_bases": "Archived %s stale base(s)",
   "ftbteambases.message.missing_team": "Team %s seems to be missing! Use `/ftbteambases archive cleanup' to archive it",
   "ftbteambases.message.team_was_disbanded": "Your team was disbanded since you last played. Returning you to the lobby...",
+  "ftbteambases.message.party_creation": "▶ To set up a party team, one player needs to go through the lobby portal first, then invite any other players to their party.\n▶ You can only invite players who are online and not in a party already.\n▶ If a player has already gone through the portal, they will need to run %s before they can be invited to your party.",
   "ftbteambases.gui.search_hint": "Search...",
   "ftbteambases.gui.show": "Show",
   "ftbteambases.gui.restore": "Restore",
