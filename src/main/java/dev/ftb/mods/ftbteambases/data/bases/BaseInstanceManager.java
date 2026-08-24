@@ -13,7 +13,6 @@ import dev.ftb.mods.ftbteambases.config.StartupConfig;
 import dev.ftb.mods.ftbteambases.data.definition.BaseDefinition;
 import dev.ftb.mods.ftbteambases.data.purging.PurgeManager;
 import dev.ftb.mods.ftbteambases.events.BaseArchivedEvent;
-import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsHomes;
 import dev.ftb.mods.ftbteambases.integration.ftbessentials.FTBEssentialsIntegration;
 import dev.ftb.mods.ftbteambases.util.*;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
@@ -35,6 +34,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.level.saveddata.SavedData;
@@ -293,15 +293,17 @@ public class BaseInstanceManager extends SavedData {
     public boolean teleportToBaseSpawn(ServerPlayer player, UUID baseId) {
         LiveBaseDetails base = liveBases.get(baseId);
         if (base != null) {
-            return DimensionUtils.teleport(player, base.dimension(), base.spawnPos(), player.getYRot());
-//            ServerLevel level = player.getServer().getLevel(base.dimension());
-//            if (level != null) {
-//                Vec3 vec = Vec3.atCenterOf(base.spawnPos());
-//                player.getServer().tell(new TickTask(player.getServer().getTickCount(), () ->
-//                        player.teleportTo(level, vec.x, vec.y, vec.z, player.getYRot(), player.getXRot())
-//                ));
-//                return true;
-//            }
+            boolean teleported = DimensionUtils.teleport(player, base.dimension(), base.spawnPos(), player.getYRot());
+            if (teleported) {
+                // in the case where base and lobby are in the same dimension, we need to handle game mode switching
+                // since it won't be handled by the dimension-changed event listener
+                var lobbyDim = StartupConfig.lobbyDimension().orElse(Level.OVERWORLD);
+                GameType lobbyGameMode = ServerConfig.LOBBY_GAME_MODE.get();
+                if (lobbyDim.equals(base.dimension()) && player.gameMode.getGameModeForPlayer() == lobbyGameMode) {
+                    player.setGameMode(GameType.SURVIVAL);
+                }
+                return true;
+            }
         }
         return false;
     }
