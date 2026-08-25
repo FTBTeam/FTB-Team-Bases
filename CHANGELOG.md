@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [21.1.18]
+
+### Changed
+* Players now get a much more informative message if they try to create a party team directly (via command or GUI)
+  * FTB Teams 2101.1.11+ required
+
+### Fixed
+* Fixed player game mode not switching on base creation if lobby and base are in same dimension
+
 ## [21.1.17]
 
 ### Added
